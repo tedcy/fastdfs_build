@@ -154,7 +154,8 @@ if [ "$tracker" == "true" ] ;then
 	rm -rf FastDFS
 	echo "clean and leave dir FastDFS"
 
-	check_exist_f $tracker_conf
+	check_exist_f /etc/fdfs/tracker.conf/sample
+	cp /etc/fdfs/tracker.conf.sample $tracker_conf
 	fix_config "bind_addr=" $ip $tracker_conf
 	fix_config "base_path=" "/data/fastdfs" $tracker_conf
 	fix_config "http.server_port=" "80" $tracker_conf
