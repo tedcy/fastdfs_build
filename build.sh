@@ -201,19 +201,19 @@ if [ "$storage" == "true" ] ;then
 	var1=`echo $tracker_ip|awk -F ',' '{print $1}' `
 	fix_config "tracker_server=" $var1"\:22122" $storage_conf
 	var2=`echo $tracker_ip|awk -F ',' '{print $2}' `
-	if [ $var2 != "" ] ;then
+	if [ "$var2" != "" ] ;then
 		fix_config "tracker_server=$var1""\:22122" "\ntracker_server="$var2"\:22122" $storage_conf
 	fi
 	var3=`echo $tracker_ip|awk -F ',' '{print $3}' `
-	if [ $var3 != "" ] ;then
+	if [ "$var3" != "" ] ;then
 		fix_config "tracker_server=$var2""\:22122" "\ntracker_server="$var3"\:22122" $storage_conf
 	fi
 	var4=`echo $tracker_ip|awk -F ',' '{print $4}' `
-	if [ $var4 != "" ] ;then
+	if [ "$var4" != "" ] ;then
 		fix_config "tracker_server=$var3""\:22122" "\ntracker_server="$var4"\:22122" $storage_conf
 	fi
 	var5=`echo $tracker_ip|awk -F ',' '{print $5}' `
-	if [ $var5 != "" ] ;then
+	if [ "$var5" != "" ] ;then
 		fix_config "tracker_server=$var4""\:22122" "\ntracker_server="$var5"\:22122" $storage_conf
 	fi
 	mkdir -pv /data/fastdfs
