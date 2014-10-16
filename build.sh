@@ -196,6 +196,7 @@ if [ "$storage" == "true" ] ;then
 	fix_config "group_name=group" $group_id $storage_conf
 	fix_config "bind_addr=" $ip $storage_conf
 	fix_config "base_path=" "/data/fastdfs" $storage_conf
+	fix_config "store_path0=" "/data/fastdfs" $storage_conf
 	fix_config "http.server_port=" "80" $storage_conf
 	
 	var1=`echo $tracker_ip|awk -F ',' '{print $1}' `
