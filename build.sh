@@ -238,6 +238,7 @@ if [ "$nginx" == "true" ] ;then
 	echo "init installation of nginx ..."
 	readonly nginx_tar="nginx-1.2.9.tar.gz"
 	readonly nginx_src_path="nginx-1.2.9"
+	readonly fastdfs_tar="FastDFS_v5.04.tar.gz"
 	readonly fdfs_nginx_tar="fastdfs-nginx-module_v1.16.tar.gz"
 	readonly fdfs_nginx_conf="/etc/fdfs/mod_fastdfs.conf"
 
@@ -246,6 +247,10 @@ if [ "$nginx" == "true" ] ;then
 
 	tar xf $nginx_tar
 	tar xf $fdfs_nginx_tar
+	tar xf $fastdfs_tar
+	cp FastDFS/conf/http.conf /etc/fdfs
+	cp FastDFS/conf/mime.types /etc/fdfs
+	rm -rf FastDFS
 
 	fix_config "CORE_INCS=" "\"\$CORE_INCS /usr/include/fastdfs /usr/include/fastcommon/\"" fastdfs-nginx-module/src/config
 	fix_config "CORE_LIBS=" "\"\$CORE_LIBS -L/usr/local/lib -lfastcommon -lfdfsclient\"" fastdfs-nginx-module/src/config
