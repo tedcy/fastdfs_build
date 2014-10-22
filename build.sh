@@ -8,6 +8,7 @@ function usage()
 	echo "-s tracker_ip	MY_IP		build storage"
 	echo "-n tracker_ip			build nginx_module"
 	echo "-g group			with group_id,storage and nginx must set this"
+	echo "-d				delete all data(just for test)"
 }
 onlyone=""
 function check_onlyone()
@@ -18,7 +19,7 @@ function check_onlyone()
 	fi
 	onlyone="true"
 }
-while getopts :mts:n:g: opt
+while getopts :mts:n:g:d opt
 do
 	case $opt in
 	m)	
@@ -41,6 +42,9 @@ do
 		;;
 	g)
 		readonly group_id=$OPTARG
+		;;
+	d)
+		readonly delete="true"
 		;;
 	'?')	
 		echo "$0:invalid option -$OPTARG" >&2
@@ -67,7 +71,7 @@ if [ "$tracker" == "true" ] || [ "$storage" == "true" ] ;then
 			exit 1
 	fi
 fi
-if [ "$monitor" == "true" ] || [ "$nginx" == "true" ];then
+if [ "$monitor" == "true" ] || [ "$nginx" == "true" ] || [ "$delete" == "true" ];then
 	if [ "$1" != "" ] ;then
 		usage
 		exit 1
@@ -308,6 +312,10 @@ if [ "$nginx" == "true" ] ;then
 	rm -rf $nginx_src_path
 	rm -rf fastdfs-nginx-module
 	
+fi
+if [ "$delete" == "true" ] ;then
+	echo "delete all of fastdfs ..."
+	rm -rf /data/fastdfs
 fi
 
 exit 0
