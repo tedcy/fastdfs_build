@@ -292,6 +292,7 @@ if [ "$nginx" == "true" ] ;then
 	fix_config "group_name=group" $group_id $fdfs_nginx_conf
 	fix_config "base_path=" "/data/fastdfs" $fdfs_nginx_conf
 	fix_config "store_path0=" "/data/fastdfs" $fdfs_nginx_conf
+	fix_config "url_have_group_name = " "true" $fdfs_nginx_conf
 	var1=`echo $tracker_ip|awk -F ',' '{print $1}' `
 	fix_config "tracker_server=" $var1"\:22122" $fdfs_nginx_conf
 	var2=`echo $tracker_ip|awk -F ',' '{print $2}' `
