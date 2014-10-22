@@ -104,6 +104,7 @@ function fix_config()
 if [ "$monitor" == "true" ] ;then
 	echo "init installation of monitor ..."
 	readonly monitor_tar="fdfs_jobs_monitor.tar.gz"
+	readonly fastdfs_tar="FastDFS_v5.04.tar.gz"
 	readonly monitor_path="/data/fdfs_jobs_monitor"
 	readonly monitor_exec="fdfs_jobs_monitor"
 	readonly monitor_config="fdfs_jobs_monitor.config"
@@ -111,15 +112,24 @@ if [ "$monitor" == "true" ] ;then
 	check_exist_f $monitor_tar 
 	check_exist_and_mkd $monitor_path
 	yum install mysql
+	yum install mysql-server
 	tar xf $monitor_tar
+	tar xf $fastdfs_tar
+	rm -rf $monitor_exec/fdfs_headers
+	mkdir $monitor_exec/fdfs_headers
+	cp FastDFS/*/*.h $monitor_exec/fdfs_headers
+	cp /usr/include/fastcommon/*.h $monitor_exec/fdfs_headers
 	echo "enter dir $monitor_exec"
 	cd $monitor_exec
 	echo "building ..."
 	./build.sh
 	cp $monitor_exec $monitor_path
 	cp $monitor_config $monitor_path
+	cp libmysqlclient.so.16 /usr/lib64
+	ln -s /usr/lib64/libmysqlclient.so.16 /usr/lib64/libmysqlclient.so
 	cd ..
 	rm -rf $monitor_exec
+	rm -rf FastDFS
 	echo "clean and leave dir $monitor_exec"
 	exit 0
 fi
