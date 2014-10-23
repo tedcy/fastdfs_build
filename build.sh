@@ -248,6 +248,7 @@ if [ "$storage" == "true" ] ;then
 	mkdir -pv /data/fastdfs/data2
 	mkdir -pv /data/fastdfs/data3
 	mkdir -pv /data/fastdfs/data4
+	mkdir -pv /data/fastdfs/data5
 	mkdir -pv /data/fastdfs/data6
 	mkdir -pv /data/fastdfs/data7
 	mkdir -pv /data/fastdfs/data8
@@ -350,6 +351,7 @@ if [ "$nginx" == "true" ] ;then
 	mkdir -pv /data/fastdfs/data2
 	mkdir -pv /data/fastdfs/data3
 	mkdir -pv /data/fastdfs/data4
+	mkdir -pv /data/fastdfs/data5
 	mkdir -pv /data/fastdfs/data6
 	mkdir -pv /data/fastdfs/data7
 	mkdir -pv /data/fastdfs/data8
