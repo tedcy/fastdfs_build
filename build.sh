@@ -210,15 +210,15 @@ if [ "$storage" == "true" ] ;then
 	fix_config "group_name=group" $group_id $storage_conf
 	fix_config "bind_addr=" $ip $storage_conf
 	fix_config "base_path=" "/data/fastdfs" $storage_conf
-	fix_config "store_path0=" "/data/fastdfs/data0"\
-"storage_path1=/data/fastdfs/data1"\
-"storage_path2=/data/fastdfs/data2"\
-"storage_path3=/data/fastdfs/data3"\
-"storage_path4=/data/fastdfs/data4"\
-"storage_path5=/data/fastdfs/data5"\
-"storage_path6=/data/fastdfs/data6"\
-"storage_path7=/data/fastdfs/data7"\
-"storage_path8=/data/fastdfs/data8"\
+	fix_config "store_path0=" "/data/fastdfs/data0\n"\
+"storage_path1=/data/fastdfs/data1\n"\
+"storage_path2=/data/fastdfs/data2\n"\
+"storage_path3=/data/fastdfs/data3\n"\
+"storage_path4=/data/fastdfs/data4\n"\
+"storage_path5=/data/fastdfs/data5\n"\
+"storage_path6=/data/fastdfs/data6\n"\
+"storage_path7=/data/fastdfs/data7\n"\
+"storage_path8=/data/fastdfs/data8\n"\
 "storage_path9=/data/fastdfs/data9"\
 	$storage_conf
 	fix_config "http.server_port=" "80" $storage_conf
@@ -311,7 +311,18 @@ if [ "$nginx" == "true" ] ;then
 	cp fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/
 	fix_config "group_name=group" $group_id $fdfs_nginx_conf
 	fix_config "base_path=" "/data/fastdfs" $fdfs_nginx_conf
-	fix_config "store_path0=" "/data/fastdfs" $fdfs_nginx_conf
+	fix_config "store_path0=" "/data/fastdfs/data0\n"\
+"storage_path1=/data/fastdfs/data1\n"\
+"storage_path2=/data/fastdfs/data2\n"\
+"storage_path3=/data/fastdfs/data3\n"\
+"storage_path4=/data/fastdfs/data4\n"\
+"storage_path5=/data/fastdfs/data5\n"\
+"storage_path6=/data/fastdfs/data6\n"\
+"storage_path7=/data/fastdfs/data7\n"\
+"storage_path8=/data/fastdfs/data8\n"\
+"storage_path9=/data/fastdfs/data9"\
+	$fdfs_nginx_conf
+
 	fix_config "url_have_group_name = " "true" $fdfs_nginx_conf
 	var1=`echo $tracker_ip|awk -F ',' '{print $1}' `
 	fix_config "tracker_server=" $var1"\:22122" $fdfs_nginx_conf
