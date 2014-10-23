@@ -210,6 +210,7 @@ if [ "$storage" == "true" ] ;then
 	fix_config "group_name=group" $group_id $storage_conf
 	fix_config "bind_addr=" $ip $storage_conf
 	fix_config "base_path=" "/data/fastdfs" $storage_conf
+	fix_config "store_path_count=" "10" $storage_conf
 	fix_config "store_path0=" "/data/fastdfs/data0\n"\
 "store_path1=/data/fastdfs/data1\n"\
 "store_path2=/data/fastdfs/data2\n"\
@@ -311,6 +312,7 @@ if [ "$nginx" == "true" ] ;then
 	cp fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/
 	fix_config "group_name=group" $group_id $fdfs_nginx_conf
 	fix_config "base_path=" "/data/fastdfs" $fdfs_nginx_conf
+	fix_config "store_path_count=" "10" $fdfs_nginx_conf
 	fix_config "store_path0=" "/data/fastdfs/data0\n"\
 "store_path1=/data/fastdfs/data1\n"\
 "store_path2=/data/fastdfs/data2\n"\
