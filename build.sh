@@ -211,15 +211,15 @@ if [ "$storage" == "true" ] ;then
 	fix_config "bind_addr=" $ip $storage_conf
 	fix_config "base_path=" "/data/fastdfs" $storage_conf
 	fix_config "store_path0=" "/data/fastdfs/data0\n"\
-"storage_path1=/data/fastdfs/data1\n"\
-"storage_path2=/data/fastdfs/data2\n"\
-"storage_path3=/data/fastdfs/data3\n"\
-"storage_path4=/data/fastdfs/data4\n"\
-"storage_path5=/data/fastdfs/data5\n"\
-"storage_path6=/data/fastdfs/data6\n"\
-"storage_path7=/data/fastdfs/data7\n"\
-"storage_path8=/data/fastdfs/data8\n"\
-"storage_path9=/data/fastdfs/data9"\
+"store_path1=/data/fastdfs/data1\n"\
+"store_path2=/data/fastdfs/data2\n"\
+"store_path3=/data/fastdfs/data3\n"\
+"store_path4=/data/fastdfs/data4\n"\
+"store_path5=/data/fastdfs/data5\n"\
+"store_path6=/data/fastdfs/data6\n"\
+"store_path7=/data/fastdfs/data7\n"\
+"store_path8=/data/fastdfs/data8\n"\
+"store_path9=/data/fastdfs/data9"\
 	$storage_conf
 	fix_config "http.server_port=" "80" $storage_conf
 	
@@ -312,15 +312,15 @@ if [ "$nginx" == "true" ] ;then
 	fix_config "group_name=group" $group_id $fdfs_nginx_conf
 	fix_config "base_path=" "/data/fastdfs" $fdfs_nginx_conf
 	fix_config "store_path0=" "/data/fastdfs/data0\n"\
-"storage_path1=/data/fastdfs/data1\n"\
-"storage_path2=/data/fastdfs/data2\n"\
-"storage_path3=/data/fastdfs/data3\n"\
-"storage_path4=/data/fastdfs/data4\n"\
-"storage_path5=/data/fastdfs/data5\n"\
-"storage_path6=/data/fastdfs/data6\n"\
-"storage_path7=/data/fastdfs/data7\n"\
-"storage_path8=/data/fastdfs/data8\n"\
-"storage_path9=/data/fastdfs/data9"\
+"store_path1=/data/fastdfs/data1\n"\
+"store_path2=/data/fastdfs/data2\n"\
+"store_path3=/data/fastdfs/data3\n"\
+"store_path4=/data/fastdfs/data4\n"\
+"store_path5=/data/fastdfs/data5\n"\
+"store_path6=/data/fastdfs/data6\n"\
+"store_path7=/data/fastdfs/data7\n"\
+"store_path8=/data/fastdfs/data8\n"\
+"store_path9=/data/fastdfs/data9"\
 	$fdfs_nginx_conf
 
 	fix_config "url_have_group_name = " "true" $fdfs_nginx_conf
