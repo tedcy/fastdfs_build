@@ -214,7 +214,7 @@ if [ "$storage" == "true" ] ;then
 	fix_config "work_threads=" 24 $storage_conf
 	fix_config "bind_addr=" $ip $storage_conf
 	fix_config "base_path=" "/data/fastdfs" $storage_conf
-	fix_config "store_path_count=" "10" $storage_conf
+	fix_config "store_path_count=" "11" $storage_conf
 	fix_config "store_path0=" "/data/fastdfs/data0\n"\
 "store_path1=/data/fastdfs/data1\n"\
 "store_path2=/data/fastdfs/data2\n"\
@@ -224,7 +224,8 @@ if [ "$storage" == "true" ] ;then
 "store_path6=/data/fastdfs/data6\n"\
 "store_path7=/data/fastdfs/data7\n"\
 "store_path8=/data/fastdfs/data8\n"\
-"store_path9=/data/fastdfs/data9"\
+"store_path9=/data/fastdfs/data9\n"\
+"store_path10=/data/fastdfs/data10"\
 	$storage_conf
 	fix_config "http.server_port=" "80" $storage_conf
 	
@@ -327,7 +328,8 @@ if [ "$nginx" == "true" ] ;then
 "store_path6=/data/fastdfs/data6\n"\
 "store_path7=/data/fastdfs/data7\n"\
 "store_path8=/data/fastdfs/data8\n"\
-"store_path9=/data/fastdfs/data9"\
+"store_path9=/data/fastdfs/data9\n"\
+"store_path10=/data/fastdfs/data10"\
 	$fdfs_nginx_conf
 
 	fix_config "url_have_group_name = " "true" $fdfs_nginx_conf
@@ -360,6 +362,7 @@ if [ "$nginx" == "true" ] ;then
 	mkdir -pv /data/fastdfs/data7
 	mkdir -pv /data/fastdfs/data8
 	mkdir -pv /data/fastdfs/data9
+	mkdir -pv /data/fastdfs/data10
 	ln -fs /data/fastdfs/data0/data /data/fastdfs/data0/data/M00
 	ln -fs /data/fastdfs/data1/data /data/fastdfs/data1/data/M01
 	ln -fs /data/fastdfs/data2/data /data/fastdfs/data2/data/M02
@@ -370,6 +373,7 @@ if [ "$nginx" == "true" ] ;then
 	ln -fs /data/fastdfs/data7/data /data/fastdfs/data7/data/M07
 	ln -fs /data/fastdfs/data8/data /data/fastdfs/data8/data/M08
 	ln -fs /data/fastdfs/data9/data /data/fastdfs/data9/data/M09
+	ln -fs /data/fastdfs/data10/data /data/fastdfs/data9/data/M10
 	fix_config "#charset koi8-r;" "\n\tlocation /group$group_id/M00{\n\t    alias   /data/fastdfs/data0/data;\n\t    ngx_fastdfs_module;\n\t}"\
 "\n\tlocation /group$group_id/M01{\n\t    alias   /data/fastdfs/data1/data;\n\t    ngx_fastdfs_module;\n\t}"\
 "\n\tlocation /group$group_id/M02{\n\t    alias   /data/fastdfs/data2/data;\n\t    ngx_fastdfs_module;\n\t}"\
@@ -380,6 +384,7 @@ if [ "$nginx" == "true" ] ;then
 "\n\tlocation /group$group_id/M07{\n\t    alias   /data/fastdfs/data7/data;\n\t    ngx_fastdfs_module;\n\t}"\
 "\n\tlocation /group$group_id/M08{\n\t    alias   /data/fastdfs/data8/data;\n\t    ngx_fastdfs_module;\n\t}"\
 "\n\tlocation /group$group_id/M09{\n\t    alias   /data/fastdfs/data9/data;\n\t    ngx_fastdfs_module;\n\t}"\
+"\n\tlocation /group$group_id/M10{\n\t    alias   /data/fastdfs/data10/data;\n\t    ngx_fastdfs_module;\n\t}"\
 	/data/nginx/conf/nginx.conf
 	mkdir -pv /var/tmp/nginx/client/
 	rm -rf $nginx_src_path
