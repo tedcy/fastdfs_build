@@ -171,7 +171,7 @@ if [ "$tracker" == "true" ] ;then
 	check_exist_f /etc/fdfs/tracker.conf.sample
 	cp /etc/fdfs/tracker.conf.sample $tracker_conf
 	fix_config "bind_addr=" $ip $tracker_conf
-	fix_config "max_connections=" 1048576 $tracker_conf
+	fix_config "max_connections=" 65536 $tracker_conf
 	fix_config "work_threads=" 24 $tracker_conf
 	fix_config "base_path=" "/data/fastdfs" $tracker_conf
 	fix_config "http.server_port=" "80" $tracker_conf
@@ -210,7 +210,7 @@ if [ "$storage" == "true" ] ;then
 	echo "clean and leave dir FastDFS"
 	check_exist_f $storage_conf
 	fix_config "group_name=group" $group_id $storage_conf
-	fix_config "max_connections=" 1048576 $storage_conf
+	fix_config "max_connections=" 65536 $storage_conf
 	fix_config "work_threads=" 24 $storage_conf
 	fix_config "bind_addr=" $ip $storage_conf
 	fix_config "base_path=" "/data/fastdfs" $storage_conf
