@@ -315,24 +315,24 @@ if [ "$nginx" == "true" ] ;then
 	make
 	make install
 	cd ..
-	cp fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/
-	fix_config "group_name=group" $group_id $fdfs_nginx_conf
-	fix_config "base_path=" "/data/fastdfs" $fdfs_nginx_conf
-	fix_config "store_path_count=" "10" $fdfs_nginx_conf
-	fix_config "store_path0=" "/data/fastdfs/data0\n"\
-"store_path1=/data/fastdfs/data1\n"\
-"store_path2=/data/fastdfs/data2\n"\
-"store_path3=/data/fastdfs/data3\n"\
-"store_path4=/data/fastdfs/data4\n"\
-"store_path5=/data/fastdfs/data5\n"\
-"store_path6=/data/fastdfs/data6\n"\
-"store_path7=/data/fastdfs/data7\n"\
-"store_path8=/data/fastdfs/data8\n"\
-"store_path9=/data/fastdfs/data9\n"\
-"store_path10=/data/fastdfs/data10"\
-	$fdfs_nginx_conf
+	cp conf/mod_fastdfs_group$group_id.conf $fdfs_nginx_conf
+#	fix_config "group_name=group" $group_id $fdfs_nginx_conf
+#	fix_config "base_path=" "/data/fastdfs" $fdfs_nginx_conf
+#	fix_config "store_path_count=" "11" $fdfs_nginx_conf
+#	fix_config "store_path0=" "/data/fastdfs/data0\n"\
+#"store_path1=/data/fastdfs/data1\n"\
+#"store_path2=/data/fastdfs/data2\n"\
+#"store_path3=/data/fastdfs/data3\n"\
+#"store_path4=/data/fastdfs/data4\n"\
+#"store_path5=/data/fastdfs/data5\n"\
+#"store_path6=/data/fastdfs/data6\n"\
+#"store_path7=/data/fastdfs/data7\n"\
+#"store_path8=/data/fastdfs/data8\n"\
+#"store_path9=/data/fastdfs/data9\n"\
+#"store_path10=/data/fastdfs/data10"\
+#	$fdfs_nginx_conf
 
-	fix_config "url_have_group_name = " "true" $fdfs_nginx_conf
+#	fix_config "url_have_group_name = " "true" $fdfs_nginx_conf
 	var1=`echo $tracker_ip|awk -F ',' '{print $1}' `
 	fix_config "tracker_server=" $var1"\:22122" $fdfs_nginx_conf
 	var2=`echo $tracker_ip|awk -F ',' '{print $2}' `
@@ -374,18 +374,19 @@ if [ "$nginx" == "true" ] ;then
 	ln -fs /data/fastdfs/data8/data /data/fastdfs/data8/data/M08
 	ln -fs /data/fastdfs/data9/data /data/fastdfs/data9/data/M09
 	ln -fs /data/fastdfs/data10/data /data/fastdfs/data9/data/M10
-	fix_config "#charset koi8-r;" "\n\tlocation /group$group_id/M00{\n\t    alias   /data/fastdfs/data0/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M01{\n\t    alias   /data/fastdfs/data1/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M02{\n\t    alias   /data/fastdfs/data2/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M03{\n\t    alias   /data/fastdfs/data3/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M04{\n\t    alias   /data/fastdfs/data4/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M05{\n\t    alias   /data/fastdfs/data5/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M06{\n\t    alias   /data/fastdfs/data6/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M07{\n\t    alias   /data/fastdfs/data7/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M08{\n\t    alias   /data/fastdfs/data8/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M09{\n\t    alias   /data/fastdfs/data9/data;\n\t    ngx_fastdfs_module;\n\t}"\
-"\n\tlocation /group$group_id/M10{\n\t    alias   /data/fastdfs/data10/data;\n\t    ngx_fastdfs_module;\n\t}"\
-	/data/nginx/conf/nginx.conf
+#fix_config "#charset koi8-r;" "\n\tlocation /group$group_id/M00{\n\t    alias   /data/fastdfs/data0/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M01{\n\t    alias   /data/fastdfs/data1/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M02{\n\t    alias   /data/fastdfs/data2/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M03{\n\t    alias   /data/fastdfs/data3/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M04{\n\t    alias   /data/fastdfs/data4/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M05{\n\t    alias   /data/fastdfs/data5/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M06{\n\t    alias   /data/fastdfs/data6/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M07{\n\t    alias   /data/fastdfs/data7/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M08{\n\t    alias   /data/fastdfs/data8/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M09{\n\t    alias   /data/fastdfs/data9/data;\n\t    ngx_fastdfs_module;\n\t}"\
+#"\n\tlocation /group$group_id/M10{\n\t    alias   /data/fastdfs/data10/data;\n\t    ngx_fastdfs_module;\n\t}"\
+	rm -rf /data/nginx/conf/nginx.conf
+	cp conf/nginx.conf /data/nginx/conf/nginx.conf
 	mkdir -pv /var/tmp/nginx/client/
 	rm -rf $nginx_src_path
 	rm -rf fastdfs-nginx-module
