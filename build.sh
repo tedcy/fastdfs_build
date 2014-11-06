@@ -291,6 +291,7 @@ if [ "$nginx" == "true" ] ;then
 	yum -y install gd gd-devel pcre-devel
 
 	cd $nginx_src_path
+	cp ../ngx_http_image_filter_module.c src/http/modules/ngx_http_image_filter_module.c
 	./configure \
 		--prefix=/data/nginx \
 		--error-log-path=/data/log/nginx/error.log \
