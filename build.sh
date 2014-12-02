@@ -108,7 +108,7 @@ function fix_config()
 if [ "$monitor" == "true" ] ;then
 	echo "init installation of monitor ..."
 	readonly monitor_tar="fdfs_jobs_monitor.tar.gz"
-	readonly fastdfs_tar="FastDFS_v5.04.tar.gz"
+	readonly fastdfs_tar="FastDFS_v5.05.tar.gz"
 	readonly monitor_path="/data/fdfs_jobs_monitor"
 	readonly monitor_exec="fdfs_jobs_monitor"
 	readonly monitor_config="fdfs_jobs_monitor.config"
@@ -139,8 +139,8 @@ if [ "$monitor" == "true" ] ;then
 fi
 if [ "$tracker" == "true" ] ;then
 	echo "init installation of tracker ..."
-	readonly tracker_tar="FastDFS_v5.04.tar.gz"
-	readonly libfastcommon_tar="libfastcommon_v1.08.tar.gz"
+	readonly tracker_tar="FastDFS_v5.05.tar.gz"
+	readonly libfastcommon_tar="libfastcommon_v1.11.tar.gz"
 	readonly tracker_path="/usr/local/bin/"
 	readonly tracker_conf="/etc/fdfs/tracker.conf"
 	
@@ -181,8 +181,8 @@ if [ "$tracker" == "true" ] ;then
 fi
 if [ "$storage" == "true" ] ;then
 	echo "init installation of storage ..."
-	readonly storage_tar="FastDFS_v5.04.tar.gz"
-	readonly libfastcommon_tar="libfastcommon_v1.08.tar.gz"
+	readonly storage_tar="FastDFS_v5.05.tar.gz"
+	readonly libfastcommon_tar="libfastcommon_v1.11.tar.gz"
 	readonly storage_path="/usr/local/bin/"
 	readonly storage_conf="/etc/fdfs/storage.conf"
 	
@@ -265,7 +265,7 @@ if [ "$nginx" == "true" ] ;then
 	echo "init installation of nginx ..."
 	readonly nginx_tar="nginx-1.2.9.tar.gz"
 	readonly nginx_src_path="nginx-1.2.9"
-	readonly fastdfs_tar="FastDFS_v5.04.tar.gz"
+	readonly fastdfs_tar="FastDFS_v5.05.tar.gz"
 	readonly fdfs_nginx_tar="fastdfs-nginx-module_v1.16.tar.gz"
 	readonly fdfs_nginx_conf="/etc/fdfs/mod_fastdfs.conf"
 
