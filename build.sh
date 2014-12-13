@@ -374,7 +374,7 @@ if [ "$nginx" == "true" ] ;then
 	ln -fs /data/fastdfs/data7/data /data/fastdfs/data7/data/M07
 	ln -fs /data/fastdfs/data8/data /data/fastdfs/data8/data/M08
 	ln -fs /data/fastdfs/data9/data /data/fastdfs/data9/data/M09
-	ln -fs /data/fastdfs/data10/data /data/fastdfs/data9/data/M10
+	ln -fs /data/fastdfs/data10/data /data/fastdfs/data10/data/M10
 #fix_config "#charset koi8-r;" "\n\tlocation /group$group_id/M00{\n\t    alias   /data/fastdfs/data0/data;\n\t    ngx_fastdfs_module;\n\t}"\
 #"\n\tlocation /group$group_id/M01{\n\t    alias   /data/fastdfs/data1/data;\n\t    ngx_fastdfs_module;\n\t}"\
 #"\n\tlocation /group$group_id/M02{\n\t    alias   /data/fastdfs/data2/data;\n\t    ngx_fastdfs_module;\n\t}"\
@@ -388,6 +388,8 @@ if [ "$nginx" == "true" ] ;then
 #"\n\tlocation /group$group_id/M10{\n\t    alias   /data/fastdfs/data10/data;\n\t    ngx_fastdfs_module;\n\t}"\
 	rm -rf /data/nginx/conf/nginx.conf
 	cp conf/nginx.conf /data/nginx/conf/nginx.conf
+	mkdir -pv /data/nginx/conf/vhosts/
+	cp conf/default.conf /data/nginx/conf/vhosts
 	mkdir -pv /var/tmp/nginx/client/
 	rm -rf $nginx_src_path
 	rm -rf fastdfs-nginx-module

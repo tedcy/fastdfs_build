@@ -1100,7 +1100,10 @@ ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type, gdImagePtr img,
         break;
 
     case NGX_HTTP_IMAGE_PNG:
-        out = gdImagePngPtr(img, size);
+        //out = gdImagePngPtr(img, size);
+		//png will be bigger than ori,so use jpg to show
+		jq = 90;
+		out = gdImageJpegPtr(img, size, jq);
         failed = "gdImagePngPtr() failed";
         break;
 
