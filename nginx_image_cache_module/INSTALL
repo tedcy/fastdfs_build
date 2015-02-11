@@ -1,0 +1,22 @@
+Copy right 2014 Tedcy / ChengYue
+
+#step 1. install nginx server
+         nginx image cache module test passed with nginx 1.2.9,
+         my nginx installed in /usr/local/nginx
+
+#step 2. download nginx cache module source package and unpack it, such as: 
+tar xzf nginx_image_cache_module_v1.00.tar.gz
+
+#step 3. enter the nginx source dir, compile and install the module, such as: 
+cd nginx-1.5.12
+./configure --add-module=/home/tedcy/nginx-image-cache-module/src
+make; make install
+
+#step 4. config the nginx config file such as nginx.conf, add the following lines:
+
+        location / {
+			image_cache_lookup_cache on;
+        }   
+
+#step 5. restart the nginx server, such as: 
+/usr/local/nginx/sbin/nginx -s stop; /usr/local/nginx/sbin/nginx

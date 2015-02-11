@@ -291,7 +291,8 @@ if [ "$nginx" == "true" ] ;then
 	yum -y install gd gd-devel pcre-devel
 
 	cd $nginx_src_path
-	cp ../ngx_http_image_filter_module.c src/http/modules/ngx_http_image_filter_module.c
+	cp ../nginx_image_cache_module/src/ngx_http_image_filter_module.c src/http/modules/ngx_http_image_filter_module.c
+	cp ../ngx_http_fastdfs_module.c ../fastdfs-nginx-module/src/ngx_http_fastdfs_module.c
 	./configure \
 		--prefix=/data/nginx \
 		--error-log-path=/data/log/nginx/error.log \
@@ -312,7 +313,8 @@ if [ "$nginx" == "true" ] ;then
 		--with-pcre \
 		--with-file-aio \
 		--with-http_image_filter_module \
-		--add-module=../fastdfs-nginx-module/src
+		--add-module=../fastdfs-nginx-module/src \
+		--add-module=../nginx_image_cache_module/src
 	make
 	make install
 	cd ..
