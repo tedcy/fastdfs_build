@@ -189,7 +189,7 @@ ngx_http_image_cache_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_image_cache_conf_t *prev = parent;
     ngx_http_image_cache_conf_t *conf = child;
 
-    ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 1);
+    ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 0);
 
     return NGX_CONF_OK;
 }
