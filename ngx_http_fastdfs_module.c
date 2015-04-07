@@ -9,6 +9,8 @@ typedef struct {
 	ngx_http_upstream_conf_t   upstream;
 	ngx_uint_t                 headers_hash_max_size;
 	ngx_uint_t                 headers_hash_bucket_size;
+	ngx_array_t                *org_ip;
+	ngx_array_t                *chg_ip;
 } ngx_http_fastdfs_loc_conf_t;
 
 static char *ngx_http_fastdfs_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -21,10 +23,15 @@ static int ngx_http_fastdfs_proxy_handler(void *arg, const char *dest_ip_addr);
 static ngx_int_t ngx_http_fastdfs_proxy_process_status_line(ngx_http_request_t *r);
 static ngx_int_t ngx_http_fastdfs_proxy_process_header(ngx_http_request_t *r);
 
+//amend for ip mapping,by @chengyue
+static void ngx_http_fastdfs_set_ctx_dest_ip_addr(ngx_http_fastdfs_loc_conf_t *plcf,ngx_http_fastdfs_proxy_ctx_t *ctx,const char *dest_ip_addr);
+static char* ngx_conf_set_org_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char* ngx_conf_set_chg_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+//
+
 static void *ngx_http_fastdfs_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_fastdfs_merge_loc_conf(ngx_conf_t *cf,
     void *parent, void *child);
-static ngx_int_t ngx_http_fastdfs_handler_init(ngx_conf_t *cf);
 
 typedef struct {
 	ngx_http_status_t status;
@@ -54,12 +61,26 @@ static ngx_command_t  ngx_http_fastdfs_commands[] = {
       0,
       NULL },
 
+    { ngx_string("ngx_fdfs_org_ip"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_ANY,
+      ngx_conf_set_org_ip,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("ngx_fdfs_chg_ip"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_ANY,
+      ngx_conf_set_chg_ip,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
       ngx_null_command
 };
 
 static ngx_http_module_t  ngx_http_fastdfs_module_ctx = {
     NULL,                                  /* preconfiguration */
-    ngx_http_fastdfs_handler_init,                                     /* postconfiguration */
+    NULL,                                     /* postconfiguration */
 
     NULL,                                  /* create main configuration */
     NULL,                                  /* init main configuration */
@@ -86,6 +107,38 @@ ngx_module_t  ngx_http_fastdfs_module = {
     NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
+
+static char* ngx_conf_set_org_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+	ngx_http_fastdfs_loc_conf_t *mycf = conf;
+	ngx_array_t *org_ip = cf->args;
+	mycf->org_ip = ngx_array_create(cf->pool,org_ip->nelts,sizeof(ngx_str_t));
+
+	ngx_uint_t array_seq = 0;
+	for(;array_seq < org_ip->nelts;++array_seq) {
+		memcpy((ngx_str_t *)mycf->org_ip->elts + array_seq,(ngx_str_t *)org_ip->elts + array_seq,sizeof(ngx_str_t));
+	}
+	mycf->org_ip->nelts = org_ip->nelts;
+	ngx_str_t *value = mycf->org_ip->elts;
+
+	return NGX_CONF_OK;
+}
+
+static char* ngx_conf_set_chg_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+	ngx_http_fastdfs_loc_conf_t *mycf = conf;
+	ngx_array_t *chg_ip = cf->args;
+	mycf->chg_ip = ngx_array_create(cf->pool,chg_ip->nelts,sizeof(ngx_str_t));
+
+	ngx_uint_t array_seq = 0;
+	for(;array_seq < chg_ip->nelts;++array_seq) {
+		memcpy((ngx_str_t *)mycf->chg_ip->elts + array_seq,(ngx_str_t *)chg_ip->elts + array_seq,sizeof(ngx_str_t));
+	}
+	mycf->chg_ip->nelts = chg_ip->nelts;
+	ngx_str_t *value = mycf->chg_ip->elts;
+
+	return NGX_CONF_OK;
+}
 
 static ngx_int_t fdfs_set_header(ngx_http_request_t *r, \
 	const char *key, const char *low_key, const int key_len, \
@@ -373,7 +426,7 @@ static int fdfs_send_file(void *arg, const char *filename, \
 	out.buf = b;
 	out.next = NULL;
 
-        b->file_pos = file_offset;
+    b->file_pos = file_offset;
 	b->file_last = file_offset + download_bytes;
 	b->in_file = download_bytes > 0 ? 1 : 0;
 	b->file->fd = of.fd;
@@ -769,6 +822,23 @@ static ngx_int_t ngx_http_fastdfs_proxy_process_header(ngx_http_request_t *r)
     }
 }
 
+static void ngx_http_fastdfs_set_ctx_dest_ip_addr(ngx_http_fastdfs_loc_conf_t *plcf,ngx_http_fastdfs_proxy_ctx_t *ctx,const char *dest_ip_addr)
+{
+	if(plcf->org_ip != NGX_CONF_UNSET_PTR && plcf->chg_ip != NGX_CONF_UNSET_PTR) {
+		ngx_str_t *org_ip = plcf->org_ip->elts;
+		ngx_str_t *chg_ip = plcf->chg_ip->elts;
+		ngx_uint_t array_seq = 1;
+		while(array_seq < plcf->org_ip->nelts) {
+			if(memcmp(org_ip[array_seq].data,dest_ip_addr,org_ip[array_seq].len) == 0){
+				strncpy(ctx->dest_ip_addr,(const char *)chg_ip[array_seq].data,chg_ip[array_seq].len);
+				return ;
+			}
+			++array_seq;
+		}
+	}
+	strcpy(ctx->dest_ip_addr, dest_ip_addr);
+}
+
 static int ngx_http_fastdfs_proxy_handler(void *arg, \
 			const char *dest_ip_addr)
 {
@@ -808,7 +878,7 @@ static int ngx_http_fastdfs_proxy_handler(void *arg, \
 	}
 
 	ngx_str_set(&u->schema, "http://");
-	strcpy(ctx->dest_ip_addr, dest_ip_addr);
+	ngx_http_fastdfs_set_ctx_dest_ip_addr(plcf, ctx, dest_ip_addr);
 	u->resolved->host.data = (u_char *)ctx->dest_ip_addr;
 	u->resolved->host.len = strlen(ctx->dest_ip_addr);
 	u->resolved->port = (in_port_t)ntohs(((struct sockaddr_in *)r-> \
@@ -951,7 +1021,13 @@ static ngx_int_t ngx_http_fastdfs_handler(ngx_http_request_t *r)
 
 static char *ngx_http_fastdfs_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
+	ngx_http_core_loc_conf_t *clcf = ngx_http_conf_get_module_loc_conf(cf, \
+						ngx_http_core_module);
+
 	fprintf(stderr, "ngx_http_fastdfs_set pid=%d\n", getpid());
+
+	/* register hanlder */
+	clcf->handler = ngx_http_fastdfs_handler;
 
 	return NGX_CONF_OK;
 }
@@ -1011,6 +1087,9 @@ static void *ngx_http_fastdfs_create_loc_conf(ngx_conf_t *cf)
     conf->headers_hash_max_size = NGX_CONF_UNSET_UINT;
     conf->headers_hash_bucket_size = NGX_CONF_UNSET_UINT;
 
+    conf->org_ip = NGX_CONF_UNSET_PTR;
+    conf->chg_ip = NGX_CONF_UNSET_PTR;
+
     return conf;
 }
 
@@ -1060,6 +1139,9 @@ static char * ngx_http_fastdfs_merge_loc_conf(ngx_conf_t *cf, void *parent, void
     hash.bucket_size = conf->headers_hash_bucket_size;
     hash.name = "proxy_headers_hash";
 
+    ngx_conf_merge_ptr_value(conf->org_ip,prev->org_ip,NGX_CONF_UNSET_PTR);
+    ngx_conf_merge_ptr_value(conf->chg_ip,prev->chg_ip,NGX_CONF_UNSET_PTR);
+
     if (ngx_http_upstream_hide_headers_hash(cf, &conf->upstream,
             &prev->upstream, ngx_http_proxy_hide_headers, &hash)
         != NGX_OK)
@@ -1070,20 +1152,3 @@ static char * ngx_http_fastdfs_merge_loc_conf(ngx_conf_t *cf, void *parent, void
     return NGX_CONF_OK;
 }
 
-static ngx_int_t
-ngx_http_fastdfs_handler_init(ngx_conf_t *cf)
-{
-	ngx_http_handler_pt        *h; 
-	ngx_http_core_main_conf_t  *cmcf;
-
-	cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
-
-	h = ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);
-	if (h == NULL) {
-		return NGX_ERROR;
-	}   
-
-	*h = ngx_http_fastdfs_handler;
-
-	return NGX_OK;
-}
