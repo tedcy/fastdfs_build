@@ -23,12 +23,6 @@ static int ngx_http_fastdfs_proxy_handler(void *arg, const char *dest_ip_addr);
 static ngx_int_t ngx_http_fastdfs_proxy_process_status_line(ngx_http_request_t *r);
 static ngx_int_t ngx_http_fastdfs_proxy_process_header(ngx_http_request_t *r);
 
-//amend for ip mapping,by @chengyue
-static void ngx_http_fastdfs_set_ctx_dest_ip_addr(ngx_http_fastdfs_loc_conf_t *plcf,ngx_http_fastdfs_proxy_ctx_t *ctx,const char *dest_ip_addr);
-static char* ngx_conf_set_org_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char* ngx_conf_set_chg_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-//
-
 static void *ngx_http_fastdfs_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_fastdfs_merge_loc_conf(ngx_conf_t *cf,
     void *parent, void *child);
@@ -37,6 +31,12 @@ typedef struct {
 	ngx_http_status_t status;
 	char dest_ip_addr[IP_ADDRESS_SIZE];
 } ngx_http_fastdfs_proxy_ctx_t;
+
+//amend for ip mapping,by @chengyue
+static void ngx_http_fastdfs_set_ctx_dest_ip_addr(ngx_http_fastdfs_loc_conf_t *plcf,ngx_http_fastdfs_proxy_ctx_t *ctx,const char *dest_ip_addr);
+static char* ngx_conf_set_org_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char* ngx_conf_set_chg_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+//
 
 static char  ngx_http_fastdfs_proxy_version[] = " HTTP/1.0"CRLF;
 
@@ -119,7 +119,6 @@ static char* ngx_conf_set_org_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		memcpy((ngx_str_t *)mycf->org_ip->elts + array_seq,(ngx_str_t *)org_ip->elts + array_seq,sizeof(ngx_str_t));
 	}
 	mycf->org_ip->nelts = org_ip->nelts;
-	ngx_str_t *value = mycf->org_ip->elts;
 
 	return NGX_CONF_OK;
 }
@@ -135,7 +134,6 @@ static char* ngx_conf_set_chg_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		memcpy((ngx_str_t *)mycf->chg_ip->elts + array_seq,(ngx_str_t *)chg_ip->elts + array_seq,sizeof(ngx_str_t));
 	}
 	mycf->chg_ip->nelts = chg_ip->nelts;
-	ngx_str_t *value = mycf->chg_ip->elts;
 
 	return NGX_CONF_OK;
 }
