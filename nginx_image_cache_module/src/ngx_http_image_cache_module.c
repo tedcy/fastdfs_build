@@ -16,7 +16,6 @@ ngx_http_image_cache_merge_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t
 ngx_http_image_cache_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_image_cache_handler(ngx_http_request_t *r);
-static char* ngx_conf_set_access_path(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static ngx_command_t ngx_http_image_cache_commands[] = {
 
