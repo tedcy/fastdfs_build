@@ -87,13 +87,9 @@ static ngx_buf_t *ngx_http_image_json(ngx_http_request_t *r,
 static ngx_buf_t *ngx_http_image_asis(ngx_http_request_t *r,
     ngx_http_image_filter_ctx_t *ctx);
 static void ngx_http_image_length(ngx_http_request_t *r, ngx_buf_t *b);
-static ngx_int_t ngx_http_image_size(ngx_http_request_t *r,
-    ngx_http_image_filter_ctx_t *ctx);
-static ngx_int_t 
-ngx_http_image_pre_size(ngx_http_request_t *r, 
-		ngx_http_image_filter_ctx_t *ctx, ngx_http_image_filter_conf_t *cf, 
-		ngx_chain_t *in);
 
+static ngx_int_t
+ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx);
 static ngx_buf_t *ngx_http_image_resize(ngx_http_request_t *r,
     ngx_http_image_filter_ctx_t *ctx);
 static gdImagePtr ngx_http_image_source(ngx_http_request_t *r,
@@ -587,6 +583,7 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 {
     u_char      *p, *last;
     size_t       len, app;
+    ngx_uint_t   width, height;
 
     p = ctx->image;
 
@@ -596,6 +593,8 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         p += 2;
         last = ctx->image + ctx->length - 10;
+        width = 0;
+        height = 0;
         app = 0;
 
         while (p < last) {
@@ -606,6 +605,14 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
                                "JPEG: %02xd %02xd", p[0], p[1]);
 
                 p++;
+
+                if ((*p == 0xc0 || *p == 0xc1 || *p == 0xc2 || *p == 0xc3
+                     || *p == 0xc9 || *p == 0xca || *p == 0xcb)
+                    && (width == 0 || height == 0))
+                {
+                    width = p[6] * 256 + p[7];
+                    height = p[4] * 256 + p[5];
+                }
 
                 ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                                "JPEG: %02xd %02xd", p[1], p[2]);
@@ -625,6 +632,10 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
             p++;
         }
 
+        if (width == 0 || height == 0) {
+            return NGX_DECLINED;
+        }
+
         if (ctx->length / 20 < app) {
             /* force conversion if application data consume more than 5% */
             ctx->force = 1;
@@ -636,74 +647,8 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
     case NGX_HTTP_IMAGE_GIF:
 
-        break;
-
-    case NGX_HTTP_IMAGE_PNG:
-
-        break;
-
-    default:
-
-        return NGX_DECLINED;
-    }
-
-    return NGX_OK;
-}
-static ngx_int_t
-ngx_http_image_pre_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx, ngx_http_image_filter_conf_t *cf, ngx_chain_t *in)
-{
-    u_char      *p, *last;
-    size_t       len;
-    ngx_uint_t   width, height;
-
-    p = in->buf->pos;
-
-    switch (ctx->type) {
-
-    case NGX_HTTP_IMAGE_JPEG:
-
-		if (in->buf->last - p < 1024) {
-			return NGX_AGAIN;
-		}
-        p += 2;
-        last = in->buf->last - 10;
-        width = 0;
-        height = 0;
-
-        while (p < last) {
-
-            if (p[0] == 0xff && p[1] != 0xff) {
-
-                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                               "JPEG: %02xd %02xd", p[0], p[1]);
-
-                p++;
-
-                if ((*p == 0xc0 || *p == 0xc1 || *p == 0xc2 || *p == 0xc3
-                     || *p == 0xc9 || *p == 0xca || *p == 0xcb)
-                    && (width == 0 || height == 0))
-                {
-                    width = p[6] * 256 + p[7];
-                    height = p[4] * 256 + p[5];
-					break;
-                }
-
-                len = p[1] * 256 + p[2];
-
-                p += len;
-
-                continue;
-            }
-
-            p++;
-        }
-
-        break;
-
-    case NGX_HTTP_IMAGE_GIF:
-
-        if (in->buf->last - in->buf->pos < 10) {
-            return NGX_AGAIN;
+        if (ctx->length < 10) {
+            return NGX_DECLINED;
         }
 
         width = p[7] * 256 + p[6];
@@ -713,8 +658,8 @@ ngx_http_image_pre_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx,
 
     case NGX_HTTP_IMAGE_PNG:
 
-        if (in->buf->last - in->buf->pos < 24) {
-            return NGX_AGAIN;
+        if (ctx->length < 24) {
+            return NGX_DECLINED;
         }
 
         width = p[18] * 256 + p[19];
@@ -724,7 +669,7 @@ ngx_http_image_pre_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx,
 
     default:
 
-        return NGX_AGAIN;
+        return NGX_DECLINED;
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -800,18 +745,6 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 				return ngx_http_image_send(r, ctx, in);
 			}
-		}
-		if((rc = ngx_http_image_pre_size(r, ctx, conf, in)) == NGX_AGAIN){
-			return NGX_OK;
-		}
-		if(rc == NGX_ERROR){
-            return ngx_http_filter_finalize_request(r,
-                                              &ngx_http_image_filter_module,
-                                              NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
-		}
-		if(ctx->height <= conf->height && ctx->width <= conf->width){
-			ctx->phase = NGX_HTTP_IMAGE_PASS;
-			return ngx_http_image_send(r, ctx, in);
 		}
         if (conf->filter == NGX_HTTP_IMAGE_TEST) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
