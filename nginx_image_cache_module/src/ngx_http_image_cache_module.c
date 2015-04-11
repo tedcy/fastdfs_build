@@ -180,7 +180,6 @@ ngx_http_image_cache_create_conf(ngx_conf_t *cf)
     }    
 
     conf->lookup_cache = NGX_CONF_UNSET;
-    conf->access_path = NGX_CONF_UNSET_PTR;
 
     return conf;
 }
@@ -192,7 +191,6 @@ ngx_http_image_cache_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_image_cache_conf_t *conf = child;
 
     ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 0);
-    ngx_conf_merge_ptr_value(conf->access_path, prev->access_path, NGX_CONF_UNSET_PTR);
 
     return NGX_CONF_OK;
 }
