@@ -6,11 +6,11 @@
 #include "common.c"
 
 typedef struct {
-	ngx_http_upstream_conf_t   upstream;
-	ngx_uint_t                 headers_hash_max_size;
-	ngx_uint_t                 headers_hash_bucket_size;
-	ngx_array_t                *org_ip;
-	ngx_array_t                *chg_ip;
+    ngx_http_upstream_conf_t   upstream;
+    ngx_uint_t                 headers_hash_max_size;
+    ngx_uint_t                 headers_hash_bucket_size;
+    ngx_array_t                *org_ip;
+    ngx_array_t                *chg_ip;
 } ngx_http_fastdfs_loc_conf_t;
 
 static char *ngx_http_fastdfs_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -27,9 +27,11 @@ static void *ngx_http_fastdfs_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_fastdfs_merge_loc_conf(ngx_conf_t *cf,
     void *parent, void *child);
 
+static ngx_int_t ngx_http_fastdfs_handler_init(ngx_conf_t *cf);
+
 typedef struct {
-	ngx_http_status_t status;
-	char dest_ip_addr[IP_ADDRESS_SIZE];
+    ngx_http_status_t status;
+    char dest_ip_addr[IP_ADDRESS_SIZE];
 } ngx_http_fastdfs_proxy_ctx_t;
 
 //amend for ip mapping,by @chengyue
@@ -41,15 +43,15 @@ static char* ngx_conf_set_chg_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char  ngx_http_fastdfs_proxy_version[] = " HTTP/1.0"CRLF;
 
 static ngx_str_t  ngx_http_proxy_hide_headers[] = {
-	ngx_string("Date"),
-	ngx_string("Server"),
-	ngx_string("X-Pad"),
-	ngx_string("X-Accel-Expires"),
-	ngx_string("X-Accel-Redirect"),
-	ngx_string("X-Accel-Limit-Rate"),
-	ngx_string("X-Accel-Buffering"),
-	ngx_string("X-Accel-Charset"),
-	ngx_null_string
+    ngx_string("Date"),
+    ngx_string("Server"),
+    ngx_string("X-Pad"),
+    ngx_string("X-Accel-Expires"),
+    ngx_string("X-Accel-Redirect"),
+    ngx_string("X-Accel-Limit-Rate"),
+    ngx_string("X-Accel-Buffering"),
+    ngx_string("X-Accel-Charset"),
+    ngx_null_string
 };
 
 /* Commands */
@@ -80,7 +82,7 @@ static ngx_command_t  ngx_http_fastdfs_commands[] = {
 
 static ngx_http_module_t  ngx_http_fastdfs_module_ctx = {
     NULL,                                  /* preconfiguration */
-    NULL,                                     /* postconfiguration */
+    ngx_http_fastdfs_handler_init,         /* postconfiguration */
 
     NULL,                                  /* create main configuration */
     NULL,                                  /* init main configuration */
@@ -110,363 +112,363 @@ ngx_module_t  ngx_http_fastdfs_module = {
 
 static char* ngx_conf_set_org_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-	ngx_http_fastdfs_loc_conf_t *mycf = conf;
-	ngx_array_t *org_ip = cf->args;
-	mycf->org_ip = ngx_array_create(cf->pool,org_ip->nelts,sizeof(ngx_str_t));
+    ngx_http_fastdfs_loc_conf_t *mycf = conf;
+    ngx_array_t *org_ip = cf->args;
+    mycf->org_ip = ngx_array_create(cf->pool,org_ip->nelts,sizeof(ngx_str_t));
 
-	ngx_uint_t array_seq = 0;
-	for(;array_seq < org_ip->nelts;++array_seq) {
-		memcpy((ngx_str_t *)mycf->org_ip->elts + array_seq,(ngx_str_t *)org_ip->elts + array_seq,sizeof(ngx_str_t));
-	}
-	mycf->org_ip->nelts = org_ip->nelts;
+    ngx_uint_t array_seq = 0;
+    for(;array_seq < org_ip->nelts;++array_seq) {
+        memcpy((ngx_str_t *)mycf->org_ip->elts + array_seq,(ngx_str_t *)org_ip->elts + array_seq,sizeof(ngx_str_t));
+    }
+    mycf->org_ip->nelts = org_ip->nelts;
 
-	return NGX_CONF_OK;
+    return NGX_CONF_OK;
 }
 
 static char* ngx_conf_set_chg_ip(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-	ngx_http_fastdfs_loc_conf_t *mycf = conf;
-	ngx_array_t *chg_ip = cf->args;
-	mycf->chg_ip = ngx_array_create(cf->pool,chg_ip->nelts,sizeof(ngx_str_t));
+    ngx_http_fastdfs_loc_conf_t *mycf = conf;
+    ngx_array_t *chg_ip = cf->args;
+    mycf->chg_ip = ngx_array_create(cf->pool,chg_ip->nelts,sizeof(ngx_str_t));
 
-	ngx_uint_t array_seq = 0;
-	for(;array_seq < chg_ip->nelts;++array_seq) {
-		memcpy((ngx_str_t *)mycf->chg_ip->elts + array_seq,(ngx_str_t *)chg_ip->elts + array_seq,sizeof(ngx_str_t));
-	}
-	mycf->chg_ip->nelts = chg_ip->nelts;
+    ngx_uint_t array_seq = 0;
+    for(;array_seq < chg_ip->nelts;++array_seq) {
+        memcpy((ngx_str_t *)mycf->chg_ip->elts + array_seq,(ngx_str_t *)chg_ip->elts + array_seq,sizeof(ngx_str_t));
+    }
+    mycf->chg_ip->nelts = chg_ip->nelts;
 
-	return NGX_CONF_OK;
+    return NGX_CONF_OK;
 }
 
 static ngx_int_t fdfs_set_header(ngx_http_request_t *r, \
-	const char *key, const char *low_key, const int key_len, \
-	char *value, const int value_len)
+    const char *key, const char *low_key, const int key_len, \
+    char *value, const int value_len)
 {
-	ngx_table_elt_t  *cc;
+    ngx_table_elt_t  *cc;
 
-	cc = ngx_list_push(&r->headers_out.headers);
-	if (cc == NULL)
-	{
-		return NGX_ERROR;
-       	}
+    cc = ngx_list_push(&r->headers_out.headers);
+    if (cc == NULL)
+    {
+        return NGX_ERROR;
+           }
 
-	cc->hash = 1;
-	cc->key.len = key_len;
-	cc->key.data = (u_char *)key;
-	cc->lowcase_key = (u_char *)low_key;
-	cc->value.len = value_len;
-	cc->value.data = (u_char *)value;
+    cc->hash = 1;
+    cc->key.len = key_len;
+    cc->key.data = (u_char *)key;
+    cc->lowcase_key = (u_char *)low_key;
+    cc->value.len = value_len;
+    cc->value.data = (u_char *)value;
 
-	return NGX_OK;
+    return NGX_OK;
 }
 
 static ngx_int_t fdfs_set_content_disposition(ngx_http_request_t *r, \
-			struct fdfs_http_response *pResponse)
+            struct fdfs_http_response *pResponse)
 {
-	int value_len;
-	value_len = snprintf(pResponse->content_disposition, \
-		sizeof(pResponse->content_disposition), \
-		"attachment; filename=\"%s\"", pResponse->attachment_filename);
-	return fdfs_set_header(r, "Content-Disposition", "content-disposition",\
-		sizeof("Content-Disposition") - 1, \
-		pResponse->content_disposition, value_len);
+    int value_len;
+    value_len = snprintf(pResponse->content_disposition, \
+        sizeof(pResponse->content_disposition), \
+        "attachment; filename=\"%s\"", pResponse->attachment_filename);
+    return fdfs_set_header(r, "Content-Disposition", "content-disposition",\
+        sizeof("Content-Disposition") - 1, \
+        pResponse->content_disposition, value_len);
 }
 
 static ngx_int_t fdfs_set_range(ngx_http_request_t *r, \
-			struct fdfs_http_response *pResponse)
+            struct fdfs_http_response *pResponse)
 {
-	return fdfs_set_header(r, "Range", "range", \
-		sizeof("Range") - 1, pResponse->range, pResponse->range_len);
+    return fdfs_set_header(r, "Range", "range", \
+        sizeof("Range") - 1, pResponse->range, pResponse->range_len);
 }
 
 static ngx_int_t fdfs_set_content_range(ngx_http_request_t *r, \
-			struct fdfs_http_response *pResponse)
+            struct fdfs_http_response *pResponse)
 {
-	return fdfs_set_header(r, "Content-Range", "content-range", \
-		sizeof("Content-Range") - 1, pResponse->content_range, \
-		pResponse->content_range_len);
+    return fdfs_set_header(r, "Content-Range", "content-range", \
+        sizeof("Content-Range") - 1, pResponse->content_range, \
+        pResponse->content_range_len);
 }
 
 static ngx_int_t fdfs_set_accept_ranges(ngx_http_request_t *r)
 {
-	return fdfs_set_header(r, "Accept-Ranges", "accept-ranges", \
-		sizeof("Accept-Ranges") - 1, "bytes", sizeof("bytes") - 1);
+    return fdfs_set_header(r, "Accept-Ranges", "accept-ranges", \
+        sizeof("Accept-Ranges") - 1, "bytes", sizeof("bytes") - 1);
 }
 
 static ngx_int_t fdfs_set_location(ngx_http_request_t *r, \
-			struct fdfs_http_response *pResponse)
+            struct fdfs_http_response *pResponse)
 {
-	ngx_table_elt_t  *cc;
+    ngx_table_elt_t  *cc;
 
-	cc = r->headers_out.location;
-	if (cc == NULL)
-	{
-		cc = ngx_list_push(&r->headers_out.headers);
-		if (cc == NULL)
-		{
-			return NGX_ERROR;
-        	}
+    cc = r->headers_out.location;
+    if (cc == NULL)
+    {
+        cc = ngx_list_push(&r->headers_out.headers);
+        if (cc == NULL)
+        {
+            return NGX_ERROR;
+            }
 
-		cc->hash = 1;
-		cc->key.len = sizeof("Location") - 1;
-		cc->key.data = (u_char *)"Location";
-		cc->lowcase_key = (u_char *)"location";
-	}
+        cc->hash = 1;
+        cc->key.len = sizeof("Location") - 1;
+        cc->key.data = (u_char *)"Location";
+        cc->lowcase_key = (u_char *)"location";
+    }
 
-	cc->value.len = pResponse->redirect_url_len;
-	cc->value.data = (u_char *)pResponse->redirect_url;
+    cc->value.len = pResponse->redirect_url_len;
+    cc->value.data = (u_char *)pResponse->redirect_url;
 
-	return NGX_OK;
+    return NGX_OK;
 }
 
 static void fdfs_output_headers(void *arg, struct fdfs_http_response *pResponse)
 {
-	ngx_http_request_t *r;
-	ngx_int_t rc;
+    ngx_http_request_t *r;
+    ngx_int_t rc;
 
-	if (pResponse->header_outputed)
-	{
-		return;
-	}
+    if (pResponse->header_outputed)
+    {
+        return;
+    }
 
-	r = (ngx_http_request_t *)arg;
+    r = (ngx_http_request_t *)arg;
 
-	if (pResponse->status != HTTP_OK \
-	 && pResponse->status != HTTP_PARTIAL_CONTENT)
-	{
-		if (pResponse->status == HTTP_MOVETEMP)
-		{
-			if (pResponse->range_len > 0)
-			{
-				fdfs_set_range(r, pResponse);
-			}
-			fdfs_set_location(r, pResponse);
-		}
-		else
-		{
-			return;  //does not send http header for other status
-		}
-	}
-	else
-	{
-		if (pResponse->content_type != NULL)
-		{
-		r->headers_out.content_type.len = strlen(pResponse->content_type);
-		r->headers_out.content_type.data = (u_char *)pResponse->content_type;
-		}
+    if (pResponse->status != HTTP_OK \
+     && pResponse->status != HTTP_PARTIAL_CONTENT)
+    {
+        if (pResponse->status == HTTP_MOVETEMP)
+        {
+            if (pResponse->range_len > 0)
+            {
+                fdfs_set_range(r, pResponse);
+            }
+            fdfs_set_location(r, pResponse);
+        }
+        else
+        {
+            return;  //does not send http header for other status
+        }
+    }
+    else
+    {
+        if (pResponse->content_type != NULL)
+        {
+        r->headers_out.content_type.len = strlen(pResponse->content_type);
+        r->headers_out.content_type.data = (u_char *)pResponse->content_type;
+        }
 
-		r->headers_out.content_length_n = pResponse->content_length;
-		if (pResponse->attachment_filename != NULL)
-		{
-			fdfs_set_content_disposition(r, pResponse);
-		}
+        r->headers_out.content_length_n = pResponse->content_length;
+        if (pResponse->attachment_filename != NULL)
+        {
+            fdfs_set_content_disposition(r, pResponse);
+        }
 
-		r->headers_out.last_modified_time = pResponse->last_modified;
-		fdfs_set_accept_ranges(r);
-		if (pResponse->content_range_len > 0)
-		{
-			fdfs_set_content_range(r, pResponse);
-		}
-	}
+        r->headers_out.last_modified_time = pResponse->last_modified;
+        fdfs_set_accept_ranges(r);
+        if (pResponse->content_range_len > 0)
+        {
+            fdfs_set_content_range(r, pResponse);
+        }
+    }
 
-	ngx_http_set_content_type(r);
+    ngx_http_set_content_type(r);
 
-	r->headers_out.status = pResponse->status;
-	pResponse->header_outputed = true;
-	rc = ngx_http_send_header(r);
-	if (rc == NGX_ERROR || rc > NGX_OK)
-	{
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"ngx_http_send_header fail, return code=%d", rc);
-		return;
-	}
+    r->headers_out.status = pResponse->status;
+    pResponse->header_outputed = true;
+    rc = ngx_http_send_header(r);
+    if (rc == NGX_ERROR || rc > NGX_OK)
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "ngx_http_send_header fail, return code=%d", rc);
+        return;
+    }
 }
 
 static int fdfs_send_reply_chunk(void *arg, const bool last_buf, \
-		const char *buff, const int size)
+        const char *buff, const int size)
 {
-	ngx_http_request_t *r;
-	ngx_buf_t *b;
-	ngx_chain_t out;
-	ngx_int_t rc;
-	u_char *new_buff;
+    ngx_http_request_t *r;
+    ngx_buf_t *b;
+    ngx_chain_t out;
+    ngx_int_t rc;
+    u_char *new_buff;
 
-	r = (ngx_http_request_t *)arg;
+    r = (ngx_http_request_t *)arg;
 
-	b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
-	if (b == NULL)
-	{
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"ngx_pcalloc fail");
-		return NGX_HTTP_INTERNAL_SERVER_ERROR;
-	}
+    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    if (b == NULL)
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "ngx_pcalloc fail");
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 
-	new_buff = ngx_palloc(r->pool, sizeof(u_char) * size);
-	if (new_buff == NULL)
-	{
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"ngx_palloc fail");
-		return NGX_HTTP_INTERNAL_SERVER_ERROR;
-	}
+    new_buff = ngx_palloc(r->pool, sizeof(u_char) * size);
+    if (new_buff == NULL)
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "ngx_palloc fail");
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 
-	out.buf = b;
-	out.next = NULL;
+    out.buf = b;
+    out.next = NULL;
 
-	memcpy(new_buff, buff, size);
+    memcpy(new_buff, buff, size);
 
-	b->pos = (u_char *)new_buff;
-	b->last = (u_char *)new_buff + size;
-	b->memory = 1;
-	b->last_in_chain = last_buf;
-	b->last_buf = last_buf;
+    b->pos = (u_char *)new_buff;
+    b->last = (u_char *)new_buff + size;
+    b->memory = 1;
+    b->last_in_chain = last_buf;
+    b->last_buf = last_buf;
 
-	/*
-	ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"ngx_http_output_filter, sent: %d", r->connection->sent);
-	*/
+    /*
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "ngx_http_output_filter, sent: %d", r->connection->sent);
+    */
 
-	rc = ngx_http_output_filter(r, &out);
-	if (rc == NGX_OK || rc == NGX_AGAIN)
-	{
-		return 0;
-	}
-	else
-	{
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"ngx_http_output_filter fail, return code: %d", rc);
-		return rc;
-	}
+    rc = ngx_http_output_filter(r, &out);
+    if (rc == NGX_OK || rc == NGX_AGAIN)
+    {
+        return 0;
+    }
+    else
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "ngx_http_output_filter fail, return code: %d", rc);
+        return rc;
+    }
 }
 
 static int fdfs_send_file(void *arg, const char *filename, \
-	const int filename_len, const int64_t file_offset, \
-	const int64_t download_bytes)
+    const int filename_len, const int64_t file_offset, \
+    const int64_t download_bytes)
 {
-	ngx_http_request_t *r;
-	ngx_http_core_loc_conf_t *ccf;
-	ngx_buf_t *b;
-	ngx_str_t ngx_filename;
-	ngx_open_file_info_t of;
-	ngx_chain_t out;
-	ngx_uint_t level;
-	ngx_int_t rc;
+    ngx_http_request_t *r;
+    ngx_http_core_loc_conf_t *ccf;
+    ngx_buf_t *b;
+    ngx_str_t ngx_filename;
+    ngx_open_file_info_t of;
+    ngx_chain_t out;
+    ngx_uint_t level;
+    ngx_int_t rc;
 
-	r = (ngx_http_request_t *)arg;
+    r = (ngx_http_request_t *)arg;
 
-	ccf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+    ccf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-	ngx_filename.data = (u_char *)filename;
-	ngx_filename.len = filename_len;
+    ngx_filename.data = (u_char *)filename;
+    ngx_filename.len = filename_len;
 
-	ngx_memzero(&of, sizeof(ngx_open_file_info_t));
+    ngx_memzero(&of, sizeof(ngx_open_file_info_t));
 
 #if defined(nginx_version) && (nginx_version >= 8018)
-	of.read_ahead = ccf->read_ahead;
+    of.read_ahead = ccf->read_ahead;
 #endif
-	of.directio = ccf->directio;
-	of.valid = ccf->open_file_cache_valid;
-	of.min_uses = ccf->open_file_cache_min_uses;
-	of.errors = ccf->open_file_cache_errors;
-	of.events = ccf->open_file_cache_events;
-	if (ngx_open_cached_file(ccf->open_file_cache, &ngx_filename, \
-			&of, r->pool) != NGX_OK)
-	{
-		switch (of.err)
-		{
-			case 0:
-				return NGX_HTTP_INTERNAL_SERVER_ERROR;
-			case NGX_ENOENT:
-			case NGX_ENOTDIR:
-			case NGX_ENAMETOOLONG:
-				level = NGX_LOG_ERR;
-				rc = NGX_HTTP_NOT_FOUND;
-				break;
-			case NGX_EACCES:
-				level = NGX_LOG_ERR;
-				rc = NGX_HTTP_FORBIDDEN;
-				break;
-			default:
-				level = NGX_LOG_CRIT;
-				rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
-				break;
-		}
+    of.directio = ccf->directio;
+    of.valid = ccf->open_file_cache_valid;
+    of.min_uses = ccf->open_file_cache_min_uses;
+    of.errors = ccf->open_file_cache_errors;
+    of.events = ccf->open_file_cache_events;
+    if (ngx_open_cached_file(ccf->open_file_cache, &ngx_filename, \
+            &of, r->pool) != NGX_OK)
+    {
+        switch (of.err)
+        {
+            case 0:
+                return NGX_HTTP_INTERNAL_SERVER_ERROR;
+            case NGX_ENOENT:
+            case NGX_ENOTDIR:
+            case NGX_ENAMETOOLONG:
+                level = NGX_LOG_ERR;
+                rc = NGX_HTTP_NOT_FOUND;
+                break;
+            case NGX_EACCES:
+                level = NGX_LOG_ERR;
+                rc = NGX_HTTP_FORBIDDEN;
+                break;
+            default:
+                level = NGX_LOG_CRIT;
+                rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+                break;
+        }
 
-		if (rc != NGX_HTTP_NOT_FOUND || ccf->log_not_found)
-		{
-			ngx_log_error(level, r->connection->log, of.err, \
-				"%s \"%s\" failed", of.failed, filename);
-		}
+        if (rc != NGX_HTTP_NOT_FOUND || ccf->log_not_found)
+        {
+            ngx_log_error(level, r->connection->log, of.err, \
+                "%s \"%s\" failed", of.failed, filename);
+        }
 
-		return rc;
-	}
+        return rc;
+    }
 
-	if (!of.is_file)
-	{
-		ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno, \
-			"\"%s\" is not a regular file", filename);
-		return NGX_HTTP_NOT_FOUND;
-	}
+    if (!of.is_file)
+    {
+        ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno, \
+            "\"%s\" is not a regular file", filename);
+        return NGX_HTTP_NOT_FOUND;
+    }
 
-	b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
-	if (b == NULL)
-	{
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"ngx_pcalloc fail");
-		return NGX_HTTP_INTERNAL_SERVER_ERROR;
-	}
+    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    if (b == NULL)
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "ngx_pcalloc fail");
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 
-	b->file = ngx_pcalloc(r->pool, sizeof(ngx_file_t));
-	if (b->file == NULL)
-	{
-		return NGX_HTTP_INTERNAL_SERVER_ERROR;
-	}
+    b->file = ngx_pcalloc(r->pool, sizeof(ngx_file_t));
+    if (b->file == NULL)
+    {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 
-	out.buf = b;
-	out.next = NULL;
+    out.buf = b;
+    out.next = NULL;
 
     b->file_pos = file_offset;
-	b->file_last = file_offset + download_bytes;
-	b->in_file = download_bytes > 0 ? 1 : 0;
-	b->file->fd = of.fd;
-	b->file->name.data = (u_char *)filename;
-	b->file->name.len = filename_len;
-	b->file->log = r->connection->log;
-	b->file->directio = of.is_directio;
+    b->file_last = file_offset + download_bytes;
+    b->in_file = download_bytes > 0 ? 1 : 0;
+    b->file->fd = of.fd;
+    b->file->name.data = (u_char *)filename;
+    b->file->name.len = filename_len;
+    b->file->log = r->connection->log;
+    b->file->directio = of.is_directio;
 
-	b->last_in_chain = 1;
-	b->last_buf = 1;
+    b->last_in_chain = 1;
+    b->last_buf = 1;
 
-	rc = ngx_http_output_filter(r, &out);
-	if (rc == NGX_OK || rc == NGX_AGAIN)
-	{
-		return NGX_HTTP_OK;
-	}
-	else
-	{
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"ngx_http_output_filter fail, return code: %d", rc);
-		return NGX_HTTP_INTERNAL_SERVER_ERROR;
-	}
+    rc = ngx_http_output_filter(r, &out);
+    if (rc == NGX_OK || rc == NGX_AGAIN)
+    {
+        return NGX_HTTP_OK;
+    }
+    else
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "ngx_http_output_filter fail, return code: %d", rc);
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 }
 
 static ngx_int_t ngx_http_fastdfs_proxy_create_request(ngx_http_request_t *r)
 {
 #define FDFS_REDIRECT_PARAM  "redirect=1"
 
-	size_t                        len;
-	ngx_buf_t                    *b;
-	ngx_uint_t                    i;
-	ngx_chain_t                  *cl;
-	ngx_list_part_t              *part;
-	ngx_table_elt_t              *header;
-	ngx_http_upstream_t          *u;
+    size_t                        len;
+    ngx_buf_t                    *b;
+    ngx_uint_t                    i;
+    ngx_chain_t                  *cl;
+    ngx_list_part_t              *part;
+    ngx_table_elt_t              *header;
+    ngx_http_upstream_t          *u;
   char *p;
-	char url[4096];
+    char url[4096];
   char *the_url;
   size_t url_len;
   bool have_query;
 
-	u = r->upstream;
+    u = r->upstream;
   if (r->valid_unparsed_uri)
   {
     the_url = (char *)r->unparsed_uri.data;
@@ -501,105 +503,105 @@ static ngx_int_t ngx_http_fastdfs_proxy_create_request(ngx_http_request_t *r)
     url_len = p - url;
   }
 
-	len = r->method_name.len + 1 + url_len + 1 + 
-		sizeof(FDFS_REDIRECT_PARAM) - 1 + 1 + 
-		sizeof(ngx_http_fastdfs_proxy_version) - 1 + sizeof(CRLF) - 1;
+    len = r->method_name.len + 1 + url_len + 1 + 
+        sizeof(FDFS_REDIRECT_PARAM) - 1 + 1 + 
+        sizeof(ngx_http_fastdfs_proxy_version) - 1 + sizeof(CRLF) - 1;
 
-	part = &r->headers_in.headers.part;
-	header = part->elts;
+    part = &r->headers_in.headers.part;
+    header = part->elts;
 
-	for (i = 0; /* void */; i++)
-	{
-		if (i >= part->nelts)
-		{
-			if (part->next == NULL)
-			{
-				break;
-			}
+    for (i = 0; /* void */; i++)
+    {
+        if (i >= part->nelts)
+        {
+            if (part->next == NULL)
+            {
+                break;
+            }
 
-			part = part->next;
-			header = part->elts;
-			i = 0;
-		}
-
-		len += header[i].key.len + 2 + header[i].value.len + 
-			sizeof(CRLF) - 1;
+            part = part->next;
+            header = part->elts;
+            i = 0;
         }
 
-	b = ngx_create_temp_buf(r->pool, len);
-	if (b == NULL)
-	{
-		return NGX_ERROR;
-	}
+        len += header[i].key.len + 2 + header[i].value.len + 
+            sizeof(CRLF) - 1;
+        }
 
-	cl = ngx_alloc_chain_link(r->pool);
-	if (cl == NULL)
-	{
-		return NGX_ERROR;
-	}
+    b = ngx_create_temp_buf(r->pool, len);
+    if (b == NULL)
+    {
+        return NGX_ERROR;
+    }
 
-	cl->buf = b;
+    cl = ngx_alloc_chain_link(r->pool);
+    if (cl == NULL)
+    {
+        return NGX_ERROR;
+    }
 
-	/* the request line */
-	b->last = ngx_copy(b->last, r->method_name.data, r->method_name.len);
-	*b->last++ = ' ';
+    cl->buf = b;
 
-	u->uri.data = b->last;
-	b->last = ngx_cpymem(b->last, the_url, url_len);
+    /* the request line */
+    b->last = ngx_copy(b->last, r->method_name.data, r->method_name.len);
+    *b->last++ = ' ';
 
-	if (have_query)
-	{
-		*b->last++ = '&';
-	}
-	else
-	{
-		*b->last++ = '?';
-	}
-	b->last = ngx_cpymem(b->last, FDFS_REDIRECT_PARAM,
-			sizeof(FDFS_REDIRECT_PARAM) - 1);
+    u->uri.data = b->last;
+    b->last = ngx_cpymem(b->last, the_url, url_len);
 
-	u->uri.len =  b->last - u->uri.data;
+    if (have_query)
+    {
+        *b->last++ = '&';
+    }
+    else
+    {
+        *b->last++ = '?';
+    }
+    b->last = ngx_cpymem(b->last, FDFS_REDIRECT_PARAM,
+            sizeof(FDFS_REDIRECT_PARAM) - 1);
 
-	*b->last++ = ' ';
-	b->last = ngx_cpymem(b->last, ngx_http_fastdfs_proxy_version,
-			sizeof(ngx_http_fastdfs_proxy_version) - 1);
+    u->uri.len =  b->last - u->uri.data;
 
-	part = &r->headers_in.headers.part;
-	header = part->elts;
-	for (i = 0; /* void */; i++)
-	{
-		if (i >= part->nelts)
-		{
-			if (part->next == NULL)
-			{
-				break;
-			}
+    *b->last++ = ' ';
+    b->last = ngx_cpymem(b->last, ngx_http_fastdfs_proxy_version,
+            sizeof(ngx_http_fastdfs_proxy_version) - 1);
 
-			part = part->next;
-			header = part->elts;
-			i = 0;
-		}
+    part = &r->headers_in.headers.part;
+    header = part->elts;
+    for (i = 0; /* void */; i++)
+    {
+        if (i >= part->nelts)
+        {
+            if (part->next == NULL)
+            {
+                break;
+            }
 
-		b->last = ngx_copy(b->last, header[i].key.data, 
-				header[i].key.len);
-		*b->last++ = ':'; *b->last++ = ' ';
-		b->last = ngx_copy(b->last, header[i].value.data,
+            part = part->next;
+            header = part->elts;
+            i = 0;
+        }
+
+        b->last = ngx_copy(b->last, header[i].key.data, 
+                header[i].key.len);
+        *b->last++ = ':'; *b->last++ = ' ';
+        b->last = ngx_copy(b->last, header[i].value.data,
                                header[i].value.len);
-		*b->last++ = CR; *b->last++ = LF;
-	}
+        *b->last++ = CR; *b->last++ = LF;
+    }
 
-	/* add "\r\n" at the header end */
-	*b->last++ = CR; *b->last++ = LF;
+    /* add "\r\n" at the header end */
+    *b->last++ = CR; *b->last++ = LF;
 
-	/*
-	fprintf(stderr, "http proxy header(%d, %d):\n\"%*s\"\n", 
-		len, b->last - b->pos, (b->last - b->pos), b->pos);
-	*/
+    /*
+    fprintf(stderr, "http proxy header(%d, %d):\n\"%*s\"\n", 
+        len, b->last - b->pos, (b->last - b->pos), b->pos);
+    */
 
-	u->request_bufs = cl;
-	cl->next = NULL;
+    u->request_bufs = cl;
+    cl->next = NULL;
 
-	return NGX_OK;
+    return NGX_OK;
 }
 
 static ngx_int_t ngx_http_fastdfs_proxy_reinit_request(ngx_http_request_t *r)
@@ -799,11 +801,11 @@ static ngx_int_t ngx_http_fastdfs_proxy_process_header(ngx_http_request_t *r)
             }
 
             /* clear content length if response is chunked */
-	    /*
+        /*
             if (r->upstream->headers_in.chunked) {
                 r->upstream->headers_in.content_length_n = -1;
             }
-	    */
+        */
 
             return NGX_OK;
         }
@@ -822,226 +824,229 @@ static ngx_int_t ngx_http_fastdfs_proxy_process_header(ngx_http_request_t *r)
 
 static void ngx_http_fastdfs_set_ctx_dest_ip_addr(ngx_http_fastdfs_loc_conf_t *plcf,ngx_http_fastdfs_proxy_ctx_t *ctx,const char *dest_ip_addr)
 {
-	if(plcf->org_ip != NGX_CONF_UNSET_PTR && plcf->chg_ip != NGX_CONF_UNSET_PTR) {
-		ngx_str_t *org_ip = plcf->org_ip->elts;
-		ngx_str_t *chg_ip = plcf->chg_ip->elts;
-		ngx_uint_t array_seq = 1;
-		while(array_seq < plcf->org_ip->nelts) {
-			if(memcmp(org_ip[array_seq].data,dest_ip_addr,org_ip[array_seq].len) == 0){
-				strncpy(ctx->dest_ip_addr,(const char *)chg_ip[array_seq].data,chg_ip[array_seq].len);
-				return ;
-			}
-			++array_seq;
-		}
-	}
-	strcpy(ctx->dest_ip_addr, dest_ip_addr);
+    if(plcf->org_ip != NGX_CONF_UNSET_PTR && plcf->chg_ip != NGX_CONF_UNSET_PTR) {
+        ngx_str_t *org_ip = plcf->org_ip->elts;
+        ngx_str_t *chg_ip = plcf->chg_ip->elts;
+        ngx_uint_t array_seq = 1;
+        while(array_seq < plcf->org_ip->nelts) {
+            if(memcmp(org_ip[array_seq].data,dest_ip_addr,org_ip[array_seq].len) == 0){
+                strncpy(ctx->dest_ip_addr,(const char *)chg_ip[array_seq].data,chg_ip[array_seq].len);
+                return ;
+            }
+            ++array_seq;
+        }
+    }
+    strcpy(ctx->dest_ip_addr, dest_ip_addr);
 }
 
 static int ngx_http_fastdfs_proxy_handler(void *arg, \
-			const char *dest_ip_addr)
+            const char *dest_ip_addr)
 {
-	ngx_http_request_t *r;
-	ngx_int_t rc;
-	ngx_http_upstream_t *u;
-	ngx_http_fastdfs_proxy_ctx_t *ctx;
-	ngx_http_fastdfs_loc_conf_t *plcf;
+    ngx_http_request_t *r;
+    ngx_int_t rc;
+    ngx_http_upstream_t *u;
+    ngx_http_fastdfs_proxy_ctx_t *ctx;
+    ngx_http_fastdfs_loc_conf_t *plcf;
 
-	r = (ngx_http_request_t *)arg;
+    r = (ngx_http_request_t *)arg;
 
-	if (ngx_http_upstream_create(r) != NGX_OK) {
-		return NGX_HTTP_INTERNAL_SERVER_ERROR;
-	}
+    if (ngx_http_upstream_create(r) != NGX_OK) {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 
-	ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_fastdfs_proxy_ctx_t));
-	if (ctx == NULL) {
-		return NGX_ERROR;
-	}
+    ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_fastdfs_proxy_ctx_t));
+    if (ctx == NULL) {
+        return NGX_ERROR;
+    }
 
-	ngx_http_set_ctx(r, ctx, ngx_http_fastdfs_module);
+    ngx_http_set_ctx(r, ctx, ngx_http_fastdfs_module);
 
-	plcf = ngx_http_get_module_loc_conf(r, ngx_http_fastdfs_module);
+    plcf = ngx_http_get_module_loc_conf(r, ngx_http_fastdfs_module);
 
-	u = r->upstream;
+    u = r->upstream;
 
 #if (NGX_HTTP_SSL)
-	u->ssl = (plcf->upstream.ssl != NULL);
+    u->ssl = (plcf->upstream.ssl != NULL);
 #endif
 
-	u->conf = &plcf->upstream;
+    u->conf = &plcf->upstream;
 
-	u->resolved = ngx_pcalloc(r->pool, sizeof(ngx_http_upstream_resolved_t));
-	if (u->resolved == NULL)
-	{
-		return NGX_ERROR;
-	}
+    u->resolved = ngx_pcalloc(r->pool, sizeof(ngx_http_upstream_resolved_t));
+    if (u->resolved == NULL)
+    {
+        return NGX_ERROR;
+    }
 
-	ngx_str_set(&u->schema, "http://");
-	ngx_http_fastdfs_set_ctx_dest_ip_addr(plcf, ctx, dest_ip_addr);
-	u->resolved->host.data = (u_char *)ctx->dest_ip_addr;
-	u->resolved->host.len = strlen(ctx->dest_ip_addr);
-	u->resolved->port = (in_port_t)ntohs(((struct sockaddr_in *)r-> \
-				connection->local_sockaddr)->sin_port);
+    ngx_str_set(&u->schema, "http://");
+    ngx_http_fastdfs_set_ctx_dest_ip_addr(plcf, ctx, dest_ip_addr);
+    u->resolved->host.data = (u_char *)ctx->dest_ip_addr;
+    u->resolved->host.len = strlen(ctx->dest_ip_addr);
+    u->resolved->port = (in_port_t)ntohs(((struct sockaddr_in *)r-> \
+                connection->local_sockaddr)->sin_port);
 
-	u->output.tag = (ngx_buf_tag_t) &ngx_http_fastdfs_module;
+    u->output.tag = (ngx_buf_tag_t) &ngx_http_fastdfs_module;
 
-	u->create_request = ngx_http_fastdfs_proxy_create_request;
-	u->reinit_request = ngx_http_fastdfs_proxy_reinit_request;
-	u->process_header = ngx_http_fastdfs_proxy_process_status_line;
-	u->abort_request = ngx_http_fastdfs_proxy_abort_request;
-	u->finalize_request = ngx_http_fastdfs_proxy_finalize_request;
-	r->state = 0;
+    u->create_request = ngx_http_fastdfs_proxy_create_request;
+    u->reinit_request = ngx_http_fastdfs_proxy_reinit_request;
+    u->process_header = ngx_http_fastdfs_proxy_process_status_line;
+    u->abort_request = ngx_http_fastdfs_proxy_abort_request;
+    u->finalize_request = ngx_http_fastdfs_proxy_finalize_request;
+    r->state = 0;
 
-	/*
-	u->pipe = ngx_pcalloc(r->pool, sizeof(ngx_event_pipe_t));
-	if (u->pipe == NULL)
-	{
-		return NGX_HTTP_INTERNAL_SERVER_ERROR;
-	}
+    /*
+    u->pipe = ngx_pcalloc(r->pool, sizeof(ngx_event_pipe_t));
+    if (u->pipe == NULL)
+    {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 
-	u->pipe->input_filter = ngx_event_pipe_copy_input_filter;
-	u->accel = 1;
-	*/
+    u->pipe->input_filter = ngx_event_pipe_copy_input_filter;
+    u->accel = 1;
+    */
 
-	rc = ngx_http_read_client_request_body(r, ngx_http_upstream_init);
+    rc = ngx_http_read_client_request_body(r, ngx_http_upstream_init);
 
-	if (rc >= NGX_HTTP_SPECIAL_RESPONSE)
-	{
-		return rc;
-	}
+    if (rc >= NGX_HTTP_SPECIAL_RESPONSE)
+    {
+        return rc;
+    }
 
-	return NGX_DONE;
+    return NGX_DONE;
 }
 
 static ngx_int_t ngx_http_fastdfs_handler(ngx_http_request_t *r)
 {
-	struct fdfs_http_context context;
-	ngx_int_t rc;
-	char url[4096];
-	char *p;
+    struct fdfs_http_context context;
+    ngx_int_t rc;
+    char url[4096];
+    char *p;
 
-	if (!(r->method & (NGX_HTTP_GET | NGX_HTTP_HEAD))) {
-		return NGX_HTTP_NOT_ALLOWED;
-	}
+    if (!(r->method & (NGX_HTTP_GET | NGX_HTTP_HEAD))) {
+        return NGX_HTTP_NOT_ALLOWED;
+    }
 
-	rc = ngx_http_discard_request_body(r);
-	if (rc != NGX_OK && rc != NGX_AGAIN)
-	{
-		return rc;
-	}
+    //avoid normal http model can't be load
+    if(memcmp(r->uri_start,"/g",2) != 0){
+        return NGX_DECLINED;
+    }
+    rc = ngx_http_discard_request_body(r);
+    if (rc != NGX_OK && rc != NGX_AGAIN)
+    {
+        return rc;
+    }
 
-	if (r->uri.len + r->args.len + 1 >= sizeof(url))
-	{
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
-			"url too long, exceeds %d bytes!", (int)sizeof(url));
-		return HTTP_BADREQUEST;
-	}
+    if (r->uri.len + r->args.len + 1 >= sizeof(url))
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+            "url too long, exceeds %d bytes!", (int)sizeof(url));
+        return HTTP_BADREQUEST;
+    }
 
-	p = url;
-	memcpy(p, r->uri.data, r->uri.len);
-	p += r->uri.len;
-	if (r->args.len > 0)
-	{
-		*p++ = '?';
-		memcpy(p, r->args.data, r->args.len);
-		p += r->args.len;
-	}
-	*p = '\0';
+    p = url;
+    memcpy(p, r->uri.data, r->uri.len);
+    p += r->uri.len;
+    if (r->args.len > 0)
+    {
+        *p++ = '?';
+        memcpy(p, r->args.data, r->args.len);
+        p += r->args.len;
+    }
+    *p = '\0';
 
-	memset(&context, 0, sizeof(context));
-	context.arg = r;
-	context.header_only = r->header_only;
-	context.url = url;
-	context.output_headers = fdfs_output_headers;
-	context.send_file = fdfs_send_file;
-	context.send_reply_chunk = fdfs_send_reply_chunk;
-	context.proxy_handler = ngx_http_fastdfs_proxy_handler;
-	context.server_port = ntohs(((struct sockaddr_in *)r->connection-> \
-					local_sockaddr)->sin_port);
+    memset(&context, 0, sizeof(context));
+    context.arg = r;
+    context.header_only = r->header_only;
+    context.url = url;
+    context.output_headers = fdfs_output_headers;
+    context.send_file = fdfs_send_file;
+    context.send_reply_chunk = fdfs_send_reply_chunk;
+    context.proxy_handler = ngx_http_fastdfs_proxy_handler;
+    context.server_port = ntohs(((struct sockaddr_in *)r->connection-> \
+                    local_sockaddr)->sin_port);
 
-	if (r->headers_in.if_modified_since != NULL)
-	{
-		if (r->headers_in.if_modified_since->value.len < \
-			sizeof(context.if_modified_since))
-		{
-			memcpy(context.if_modified_since, \
-				r->headers_in.if_modified_since->value.data, \
-				r->headers_in.if_modified_since->value.len);
-		}
+    if (r->headers_in.if_modified_since != NULL)
+    {
+        if (r->headers_in.if_modified_since->value.len < \
+            sizeof(context.if_modified_since))
+        {
+            memcpy(context.if_modified_since, \
+                r->headers_in.if_modified_since->value.data, \
+                r->headers_in.if_modified_since->value.len);
+        }
 
-		/*
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
-			"if_modified_since: %s", context.if_modified_since);
-		*/
-	}
+        /*
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
+            "if_modified_since: %s", context.if_modified_since);
+        */
+    }
 
-	if (r->headers_in.range != NULL)
-	{
-		char buff[64];
-		if (r->headers_in.range->value.len >= sizeof(buff))
-		{
-			ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
-				"bad request, range length: %d exceeds buff " \
-				"size: %d, range: %*s", \
-				r->headers_in.range->value.len, \
-				(int)sizeof(buff), \
-				r->headers_in.range->value.len, \
-				r->headers_in.range->value.data);
-			return NGX_HTTP_BAD_REQUEST;
-		}
+    if (r->headers_in.range != NULL)
+    {
+        char buff[64];
+        if (r->headers_in.range->value.len >= sizeof(buff))
+        {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
+                "bad request, range length: %d exceeds buff " \
+                "size: %d, range: %*s", \
+                r->headers_in.range->value.len, \
+                (int)sizeof(buff), \
+                r->headers_in.range->value.len, \
+                r->headers_in.range->value.data);
+            return NGX_HTTP_BAD_REQUEST;
+        }
 
-		memcpy(buff, r->headers_in.range->value.data, \
-				r->headers_in.range->value.len);
-		*(buff + r->headers_in.range->value.len) = '\0';
-		//ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "buff=%s", buff);
-		if (fdfs_parse_range(buff, &(context.range)) != 0)
-		{
-			ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
-				"bad request, invalid range: %s", buff);
-			return NGX_HTTP_BAD_REQUEST;
-		}
-		context.if_range = true;
+        memcpy(buff, r->headers_in.range->value.data, \
+                r->headers_in.range->value.len);
+        *(buff + r->headers_in.range->value.len) = '\0';
+        //ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "buff=%s", buff);
+        if (fdfs_parse_range(buff, &(context.range)) != 0)
+        {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
+                "bad request, invalid range: %s", buff);
+            return NGX_HTTP_BAD_REQUEST;
+        }
+        context.if_range = true;
 
-		/*
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
-			"if_range=%d, start=%d, end=%d", context.if_range, \
-			(int)context.range.start, (int)context.range.end);
-		*/
-	}
+        /*
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
+            "if_range=%d, start=%d, end=%d", context.if_range, \
+            (int)context.range.start, (int)context.range.end);
+        */
+    }
 
-	/*
-	ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
-			"args=%*s, uri=%*s", r->args.len, r->args.data, \
-			r->uri.len, r->uri.data);
-	*/
+    /*
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, \
+            "args=%*s, uri=%*s", r->args.len, r->args.data, \
+            r->uri.len, r->uri.data);
+    */
 
-	return fdfs_http_request_handler(&context);
+    return fdfs_http_request_handler(&context);
 }
 
 static char *ngx_http_fastdfs_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-	ngx_http_core_loc_conf_t *clcf = ngx_http_conf_get_module_loc_conf(cf, \
-						ngx_http_core_module);
+    //ngx_http_core_loc_conf_t *clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
 
-	fprintf(stderr, "ngx_http_fastdfs_set pid=%d\n", getpid());
+    fprintf(stderr, "ngx_http_fastdfs_set pid=%d\n", getpid());
 
-	/* register hanlder */
-	clcf->handler = ngx_http_fastdfs_handler;
+    /* register hanlder */
+    //clcf->handler = ngx_http_fastdfs_handler;
 
-	return NGX_CONF_OK;
+    return NGX_CONF_OK;
 }
 
 static ngx_int_t ngx_http_fastdfs_process_init(ngx_cycle_t *cycle)
 {
-	int result;
+    int result;
 
-	fprintf(stderr, "ngx_http_fastdfs_process_init pid=%d\n", getpid());
-	// do some init here
-	if ((result=fdfs_mod_init()) != 0)
-	{
-		return NGX_ERROR;
-	}
+    fprintf(stderr, "ngx_http_fastdfs_process_init pid=%d\n", getpid());
+    // do some init here
+    if ((result=fdfs_mod_init()) != 0)
+    {
+        return NGX_ERROR;
+    }
 
-	return NGX_OK;
+    return NGX_OK;
 }
 
 static void ngx_http_fastdfs_process_exit(ngx_cycle_t *cycle)
@@ -1150,3 +1155,20 @@ static char * ngx_http_fastdfs_merge_loc_conf(ngx_conf_t *cf, void *parent, void
     return NGX_CONF_OK;
 }
 
+static ngx_int_t        
+ngx_http_fastdfs_handler_init(ngx_conf_t *cf)        
+{        
+    ngx_http_handler_pt        *h;         
+    ngx_http_core_main_conf_t  *cmcf;        
+        
+    cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);        
+        
+    h = ngx_array_push(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers);        
+    if (h == NULL) {        
+    return NGX_ERROR;        
+    }           
+        
+    *h = ngx_http_fastdfs_handler;        
+        
+    return NGX_OK;        
+}
