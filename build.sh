@@ -267,13 +267,17 @@ if [ "$nginx" == "true" ] ;then
 	readonly fastdfs_tar="FastDFS_v5.05.tar.gz"
 	readonly fdfs_nginx_tar="fastdfs-nginx-module_v1.16.tar.gz"
 	readonly fdfs_nginx_conf="/etc/fdfs/mod_fastdfs.conf"
+    readonly lib_webp_tar="libwebp-0.4.3.tar.gz"
+    readonly lib_webp_src_path="libwebp-0.4.3"
 
 	check_exist_f $nginx_tar
 	check_exist_f $fdfs_nginx_tar
+	check_exist_f $lib_webp_tar
 
 	tar xf $nginx_tar
 	tar xf $fdfs_nginx_tar
 	tar xf $fastdfs_tar
+    tar xf $lib_webp_tar
 	cp FastDFS/conf/http.conf /etc/fdfs
 	cp FastDFS/conf/mime.types /etc/fdfs
 	rm -rf FastDFS
@@ -288,6 +292,13 @@ if [ "$nginx" == "true" ] ;then
 	useradd nginx -s /sbin/nologin -d /home/nginx
 	#yum -y groupinstall "Development tools" "Server Platform Libraries" 
 	yum -y install gd gd-devel pcre-devel
+
+    cd $lib_webp_src_path
+    ./configure
+    make
+    make install
+    cd ..
+    rm -rf $lib_webp_src_path
 
 	cd $nginx_src_path
 	cp ../nginx_image_cache_module/src/ngx_http_image_filter_module.c src/http/modules/ngx_http_image_filter_module.c
@@ -390,6 +401,8 @@ if [ "$nginx" == "true" ] ;then
 	cp conf/nginx.conf /data/nginx/conf/nginx.conf
 	mkdir -pv /data/nginx/conf/vhosts/
 	cp conf/default.conf /data/nginx/conf/vhosts
+    fix_config "image_cache_group_name " "group"$group_id";" /data/nginx/conf/vhosts/default.conf
+    fix_config "image_filter_group_name " "group"$group_id";" /data/nginx/conf/vhosts/default.conf
 	mkdir -pv /var/tmp/nginx/client/
 	rm -rf $nginx_src_path
 	rm -rf fastdfs-nginx-module
