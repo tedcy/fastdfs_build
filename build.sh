@@ -297,6 +297,7 @@ if [ "$nginx" == "true" ] ;then
     ./configure
     make
     make install
+    ldconfig
     cd ..
     rm -rf $lib_webp_src_path
 
