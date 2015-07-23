@@ -12,6 +12,8 @@
 
 #include <gd.h>
 
+#include <webp/encode.h>
+#include <webp/decode.h>
 
 #define NGX_HTTP_IMAGE_OFF       0
 #define NGX_HTTP_IMAGE_TEST      1
@@ -32,6 +34,7 @@
 #define NGX_HTTP_IMAGE_JPEG      1
 #define NGX_HTTP_IMAGE_GIF       2
 #define NGX_HTTP_IMAGE_PNG       3
+#define NGX_HTTP_IMAGE_WEBP      4
 
 
 #define NGX_HTTP_IMAGE_BUFFERED  0x08
@@ -48,6 +51,8 @@ typedef struct {
     ngx_flag_t                   transparency;
     ngx_flag_t                   save_cache;
     ngx_flag_t                   lookup_cache;
+    
+    ngx_str_t                    group_name;
 
     ngx_http_complex_value_t    *wcv;
     ngx_http_complex_value_t    *hcv;
@@ -62,6 +67,7 @@ typedef struct {
 typedef struct {
     u_char                      *image;
     u_char                      *last;
+    WebPPicture                  pic;
 
     size_t                       length;
 
@@ -99,6 +105,7 @@ static gdImagePtr ngx_http_image_new(ngx_http_request_t *r, int w, int h,
 static u_char *ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type,
     gdImagePtr img, int *size);
 static void ngx_http_image_cleanup(void *data);
+static void ngx_http_image_webp_cleanup(void *data);
 static ngx_uint_t ngx_http_image_filter_get_value(ngx_http_request_t *r,
     ngx_http_complex_value_t *cv, ngx_uint_t v);
 static ngx_uint_t ngx_http_image_filter_value(ngx_str_t *value);
@@ -160,6 +167,13 @@ static ngx_command_t  ngx_http_image_filter_commands[] = {
       offsetof(ngx_http_image_filter_conf_t, lookup_cache),
       NULL },
 
+    { ngx_string("image_filter_group_name"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_image_filter_conf_t, group_name),
+      NULL },
+
     { ngx_string("image_filter_buffer"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
@@ -209,7 +223,8 @@ static ngx_http_output_body_filter_pt    ngx_http_next_body_filter;
 static ngx_str_t  ngx_http_image_types[] = {
     ngx_string("image/jpeg"),
     ngx_string("image/gif"),
-    ngx_string("image/png")
+    ngx_string("image/png"),
+    ngx_string("image/webp")
 };
 
 
@@ -446,11 +461,18 @@ static ngx_int_t
 ngx_http_save_cache_file(ngx_http_request_t *r, ngx_chain_t *in,ngx_chain_t *out)
 {
 	u_char *uri_file_name;
+    u_char *group_name;
 	size_t file_len;
 	int rand_stamp;
-	image_cache_t *im;
+	image_cache_t *im = NULL;
 	ngx_int_t result;
+    ngx_http_image_filter_conf_t  *conf;
 
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+    group_name = r->uri_start + 1;
+    if(memcmp(conf->group_name.data, group_name, conf->group_name.len) != 0)
+        return NGX_OK;
+    
 	im = calloc(1,sizeof(image_cache_t));
 	if(im == NULL){
 		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"%d\" :can't malloc space",__LINE__);
@@ -464,9 +486,9 @@ ngx_http_save_cache_file(ngx_http_request_t *r, ngx_chain_t *in,ngx_chain_t *out
 	/*doesn't exist temp file*/
 	do{
 		rand_stamp = rand()%1000000;
-		snprintf((char *)im->file_name,128,"/tmp/image_cache/%.*s-%d",im->name_len,uri_file_name,rand_stamp);
+		snprintf((char *)im->file_name,128,"/data/imagecache/%.*s-%d",im->name_len,uri_file_name,rand_stamp);
 	}while(access((char *)im->file_name,F_OK) == 0);
-	/*strlen("/tmp/image_cache/") = 17*/
+	/*strlen("/data/imagecache/") = 17*/
 	//ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"%s\"",im->file_name);
 	im->name_len += 17;
 
@@ -555,14 +577,21 @@ static ngx_int_t
 ngx_http_lookup_cache_file(ngx_http_request_t *r)
 {
 	u_char buf[128];
-    u_char file_name[128] = "/tmp/image_cache/";
+    u_char file_name[128] = "/data/imagecache/";
 	size_t name_len;
 	u_char *uri_file_name;
+    u_char *group_name;
+    ngx_http_image_filter_conf_t  *conf;
 	
     memset(buf,0,128);
 	name_len = r->uri_end - r->uri_start;
     memcpy(buf,r->uri_start,name_len);
 	uri_file_name = buf + 12;
+    group_name = buf + 1;
+
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+    if(memcmp(conf->group_name.data, group_name, conf->group_name.len) != 0)
+        return NGX_HTTP_NOT_FOUND;
 
 	strncat((char*)file_name,(char *)uri_file_name,128);
 
@@ -576,6 +605,65 @@ ngx_http_lookup_cache_file(ngx_http_request_t *r)
 	//	return NGX_OK;
 	//}
 	return NGX_HTTP_NOT_FOUND;
+}
+
+int ExUtilLoadWebP(const uint8_t* data, size_t data_size,
+                   WebPBitstreamFeatures* bitstream) {
+  VP8StatusCode status;
+  WebPBitstreamFeatures local_features;
+
+  if (bitstream == NULL) {
+    bitstream = &local_features;
+  }
+
+  status = WebPGetFeatures(data, data_size, bitstream);
+  if (status != VP8_STATUS_OK) {
+    return 0;
+  }
+  return 1;
+}
+
+VP8StatusCode ExUtilDecodeWebP(const uint8_t* const data, size_t data_size,
+                               int verbose, WebPDecoderConfig* const config) {
+  VP8StatusCode status = VP8_STATUS_OK;
+  if (config == NULL) return VP8_STATUS_INVALID_PARAM;
+
+  // Decoding call.
+  status = WebPDecode(data, data_size, config);
+
+  return status;
+}
+
+int ReadWebP(const uint8_t* data, size_t data_size, WebPPicture* const pic, int keep_alpha)  
+{
+  int ok = 0;
+  VP8StatusCode status = VP8_STATUS_OK;
+  WebPDecoderConfig config;
+  WebPDecBuffer* const output_buffer = &config.output;
+  WebPBitstreamFeatures* const bitstream = &config.input;
+
+  if (!WebPInitDecoderConfig(&config)) {
+    return 0;
+  }
+
+  if (ExUtilLoadWebP(data, data_size, bitstream)) {
+    const int has_alpha = keep_alpha && bitstream->has_alpha;
+    output_buffer->colorspace = has_alpha ? MODE_RGBA : MODE_RGB;
+
+    status = ExUtilDecodeWebP(data, data_size, 0, &config);
+    if (status == VP8_STATUS_OK) {
+      const uint8_t* const rgba = output_buffer->u.RGBA.rgba;
+      const int stride = output_buffer->u.RGBA.stride;
+      pic->width = output_buffer->width;
+      pic->height = output_buffer->height;
+      pic->use_argb = 1;
+      ok = has_alpha ? WebPPictureImportRGBA(pic, rgba, stride)
+                     : WebPPictureImportRGB(pic, rgba, stride);
+    }
+  }
+
+  WebPFreeDecBuffer(output_buffer);
+  return ok;
 }
 
 static ngx_int_t
@@ -664,6 +752,16 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         width = p[18] * 256 + p[19];
         height = p[22] * 256 + p[23];
+
+        break;
+
+    case NGX_HTTP_IMAGE_WEBP:
+
+        WebPPictureInit(&ctx->pic);
+
+        ReadWebP(p, ctx->length, &ctx->pic, 1);
+        width = ctx->pic.width;
+        height = ctx->pic.height;
 
         break;
 
@@ -778,6 +876,9 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         out.buf = ngx_http_image_process(r);
 
+        if(ctx->type == NGX_HTTP_IMAGE_WEBP)
+            WebPPictureFree(&ctx->pic);
+        
         if (out.buf == NULL) {
             return ngx_http_filter_finalize_request(r,
                                               &ngx_http_image_filter_module,
@@ -864,6 +965,11 @@ ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in)
 
         return NGX_HTTP_IMAGE_PNG;
     }
+    uint32_t webp_magic1 = ((uint32_t)p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+    uint32_t webp_magic2 = ((uint32_t)p[8] << 24) | (p[9] << 16) | (p[10] << 8) | p[11];
+
+    if (webp_magic1 == 0x52494646 && webp_magic2 == 0x57454250)
+        return NGX_HTTP_IMAGE_WEBP;
 
     return NGX_HTTP_IMAGE_NONE;
 }
@@ -1057,9 +1163,6 @@ ngx_http_image_length(ngx_http_request_t *r, ngx_buf_t *b)
     r->headers_out.content_length = NULL;
 }
 
-
-
-
 static ngx_buf_t *
 ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 {
@@ -1073,6 +1176,71 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     ngx_pool_cleanup_t            *cln;
     ngx_http_image_filter_conf_t  *conf;
 
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+
+    if(ctx->type == NGX_HTTP_IMAGE_WEBP) {
+        WebPConfig config;
+        WebPMemoryWriter writer;
+
+        WebPConfigInit(&config);
+        WebPMemoryWriterInit(&writer);
+
+        if (!WebPValidateConfig(&config)) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Invalid configuration.");
+            return NULL;
+        }
+
+        ctx->pic.writer = WebPMemoryWrite;
+        ctx->pic.custom_ptr = &writer;
+        dx = ctx->width;
+        dy = ctx->height;
+        if ((ngx_uint_t) dx > ctx->max_width) {
+            dy = dy * ctx->max_width / dx;
+            dy = dy ? dy : 1;
+            dx = ctx->max_width;
+        }
+
+        if ((ngx_uint_t) dy > ctx->max_height) {
+            dx = dx * ctx->max_height / dy;
+            dx = dx ? dx : 1;
+            dy = ctx->max_height;
+        }
+        if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
+            return NULL;
+        }
+        if (!WebPEncode(&config, &ctx->pic)) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot encode picture as WebP");
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error code: %d (%d)",ctx->pic.error_code, ctx->pic.error_code);
+            return NULL;
+        } 
+
+        out = writer.mem;
+        size = writer.size;
+        cln = ngx_pool_cleanup_add(r->pool, 0);
+        if (cln == NULL) {
+            free(out);
+            return NULL;
+        }
+
+        b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+        if (b == NULL) {
+            free(out);
+            return NULL;
+        }
+
+        cln->handler = ngx_http_image_webp_cleanup;
+        cln->data = out;
+
+        b->pos = out;
+        b->last = out + size;
+        b->memory = 1;
+        b->last_buf = 1;
+
+        ngx_http_image_length(r, b);
+
+        return b;
+    }
     src = ngx_http_image_source(r, ctx);
 
     if (src == NULL) {
@@ -1081,8 +1249,6 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
     sx = gdImageSX(src);
     sy = gdImageSY(src);
-
-    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
     if (!ctx->force
         && ctx->angle == 0
@@ -1452,6 +1618,11 @@ ngx_http_image_cleanup(void *data)
     gdFree(data);
 }
 
+static void
+ngx_http_image_webp_cleanup(void *data)
+{
+    free(data);
+}
 
 static ngx_uint_t
 ngx_http_image_filter_get_value(ngx_http_request_t *r,
@@ -1520,6 +1691,7 @@ ngx_http_image_filter_create_conf(ngx_conf_t *cf)
     conf->save_cache = NGX_CONF_UNSET;
     conf->lookup_cache = NGX_CONF_UNSET;
     conf->buffer_size = NGX_CONF_UNSET_SIZE;
+    ngx_str_null(&conf->group_name);
 
     return conf;
 }
@@ -1568,6 +1740,8 @@ ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->transparency, prev->transparency, 1);
     ngx_conf_merge_value(conf->save_cache, prev->save_cache, 1);
     ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 1);
+    
+    ngx_conf_merge_str_value(conf->group_name, prev->group_name, "");
 
     ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
                               1 * 1024 * 1024);
@@ -1826,7 +2000,7 @@ ngx_http_image_filter_sharpen(ngx_conf_t *cf, ngx_command_t *cmd,
 static ngx_int_t
 ngx_http_image_filter_init(ngx_conf_t *cf)
 {
-	ngx_image_cache_mkdir("/tmp/image_cache",cf->log);	
+	ngx_image_cache_mkdir("/data/imagecache",cf->log);	
     //ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_filter_init");
     ngx_http_next_header_filter = ngx_http_top_header_filter;
     ngx_http_top_header_filter = ngx_http_image_header_filter;

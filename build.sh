@@ -293,6 +293,7 @@ if [ "$nginx" == "true" ] ;then
 	cp ../nginx_image_cache_module/src/ngx_http_image_filter_module.c src/http/modules/ngx_http_image_filter_module.c
 	cp ../ngx_http_fastdfs_module.c ../fastdfs-nginx-module/src/ngx_http_fastdfs_module.c
 	./configure \
+        --with-ld-opt='-lwebp' \
 		--prefix=/data/nginx \
 		--error-log-path=/data/log/nginx/error.log \
 		--http-log-path=/data/log/nginx/access.log \
