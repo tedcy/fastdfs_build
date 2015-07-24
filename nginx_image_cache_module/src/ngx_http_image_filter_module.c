@@ -52,8 +52,6 @@ typedef struct {
     ngx_flag_t                   save_cache;
     ngx_flag_t                   lookup_cache;
     
-    ngx_str_t                    group_name;
-
     ngx_http_complex_value_t    *wcv;
     ngx_http_complex_value_t    *hcv;
     ngx_http_complex_value_t    *acv;
@@ -165,13 +163,6 @@ static ngx_command_t  ngx_http_image_filter_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_image_filter_conf_t, lookup_cache),
-      NULL },
-
-    { ngx_string("image_filter_group_name"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_image_filter_conf_t, group_name),
       NULL },
 
     { ngx_string("image_filter_buffer"),
@@ -461,18 +452,12 @@ static ngx_int_t
 ngx_http_save_cache_file(ngx_http_request_t *r, ngx_chain_t *in,ngx_chain_t *out)
 {
 	u_char *uri_file_name;
-    u_char *group_name;
 	size_t file_len;
 	int rand_stamp;
 	image_cache_t *im = NULL;
 	ngx_int_t result;
     ngx_http_image_filter_conf_t  *conf;
 
-    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
-    group_name = r->uri_start + 1;
-    if(memcmp(conf->group_name.data, group_name, conf->group_name.len) != 0)
-        return NGX_OK;
-    
 	im = calloc(1,sizeof(image_cache_t));
 	if(im == NULL){
 		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"%d\" :can't malloc space",__LINE__);
@@ -580,18 +565,12 @@ ngx_http_lookup_cache_file(ngx_http_request_t *r)
     u_char file_name[128] = "/data/imagecache/";
 	size_t name_len;
 	u_char *uri_file_name;
-    u_char *group_name;
     ngx_http_image_filter_conf_t  *conf;
 	
     memset(buf,0,128);
 	name_len = r->uri_end - r->uri_start;
     memcpy(buf,r->uri_start,name_len);
 	uri_file_name = buf + 12;
-    group_name = buf + 1;
-
-    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
-    if(memcmp(conf->group_name.data, group_name, conf->group_name.len) != 0)
-        return NGX_HTTP_NOT_FOUND;
 
 	strncat((char*)file_name,(char *)uri_file_name,128);
 
@@ -1691,7 +1670,6 @@ ngx_http_image_filter_create_conf(ngx_conf_t *cf)
     conf->save_cache = NGX_CONF_UNSET;
     conf->lookup_cache = NGX_CONF_UNSET;
     conf->buffer_size = NGX_CONF_UNSET_SIZE;
-    ngx_str_null(&conf->group_name);
 
     return conf;
 }
@@ -1741,8 +1719,6 @@ ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->save_cache, prev->save_cache, 1);
     ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 1);
     
-    ngx_conf_merge_str_value(conf->group_name, prev->group_name, "");
-
     ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
                               1 * 1024 * 1024);
 

@@ -7,7 +7,6 @@
 
 typedef struct {
     ngx_flag_t                   lookup_cache;
-    ngx_str_t                    group_name;
 } ngx_http_image_cache_conf_t;
 
 static void *
@@ -28,13 +27,6 @@ static ngx_command_t ngx_http_image_cache_commands[] = {
         NULL 
     },
 
-    { ngx_string("image_cache_group_name"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_image_cache_conf_t, group_name),
-      NULL },
-    
     ngx_null_command
 };
 
@@ -76,21 +68,15 @@ ngx_http_lookup_and_send_cache_file(ngx_http_request_t *r, ngx_chain_t *out)
     ngx_pool_cleanup_t *cln;
     size_t name_len;
     u_char *uri_file_name;
-    u_char *group_name;
     
     memset(buf,0,128);
     name_len = r->uri_end - r->uri_start;
     memcpy(buf,r->uri_start,name_len);
     uri_file_name = buf + 12;
-    group_name = buf + 1;
-
-    ngx_http_image_cache_conf_t  *conf;
-    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_cache_module);
 
     strncat((char*)file_name,(char *)uri_file_name,128);
 	
-    if(memcmp(conf->group_name.data, group_name, conf->group_name.len) == 0 && \
-            access((char *)file_name,F_OK) == 0) {
+    if(access((char *)file_name,F_OK) == 0) {
 
         b = ngx_palloc(r->pool, sizeof(ngx_buf_t));
         ngx_memzero(b,sizeof(ngx_buf_t));
@@ -192,7 +178,6 @@ ngx_http_image_cache_create_conf(ngx_conf_t *cf)
     }    
 
     conf->lookup_cache = NGX_CONF_UNSET;
-    ngx_str_null(&conf->group_name);
 
     return conf;
 }
@@ -204,7 +189,6 @@ ngx_http_image_cache_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_image_cache_conf_t *conf = child;
 
     ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 0);
-    ngx_conf_merge_str_value(conf->group_name, prev->group_name, "");
 
     return NGX_CONF_OK;
 }

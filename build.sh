@@ -402,8 +402,7 @@ if [ "$nginx" == "true" ] ;then
 	cp conf/nginx.conf /data/nginx/conf/nginx.conf
 	mkdir -pv /data/nginx/conf/vhosts/
 	cp conf/default.conf /data/nginx/conf/vhosts
-    fix_config "image_cache_group_name " "group"$group_id";" /data/nginx/conf/vhosts/default.conf
-    fix_config "image_filter_group_name " "group"$group_id";" /data/nginx/conf/vhosts/default.conf
+    fix_config "group[1-9]&[!" $group_id"])/.*\.(jpg|png|gif|webp)$ {" /data/nginx/conf/vhosts/default.conf
 	mkdir -pv /var/tmp/nginx/client/
 	rm -rf $nginx_src_path
 	rm -rf fastdfs-nginx-module
