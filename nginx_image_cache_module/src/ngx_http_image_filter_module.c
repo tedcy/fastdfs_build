@@ -456,7 +456,6 @@ ngx_http_save_cache_file(ngx_http_request_t *r, ngx_chain_t *in,ngx_chain_t *out
 	int rand_stamp;
 	image_cache_t *im = NULL;
 	ngx_int_t result;
-    ngx_http_image_filter_conf_t  *conf;
 
 	im = calloc(1,sizeof(image_cache_t));
 	if(im == NULL){
@@ -565,7 +564,6 @@ ngx_http_lookup_cache_file(ngx_http_request_t *r)
     u_char file_name[128] = "/data/imagecache/";
 	size_t name_len;
 	u_char *uri_file_name;
-    ngx_http_image_filter_conf_t  *conf;
 	
     memset(buf,0,128);
 	name_len = r->uri_end - r->uri_start;
