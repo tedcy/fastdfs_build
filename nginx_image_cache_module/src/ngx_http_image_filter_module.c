@@ -874,7 +874,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         out.buf = ngx_http_image_process(r);
 
-        if(ctx->type == NGX_HTTP_IMAGE_WEBP)
+        if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP)
             WebPPictureFree(&ctx->pic);
         
         if (out.buf == NULL) {
@@ -1053,15 +1053,15 @@ ngx_http_image_process(ngx_http_request_t *r)
     }
 
     ctx->max_width = ngx_http_image_filter_get_value(r, conf->wcv, conf->width);
-    if (ctx->max_width == 0) {
-        return NULL;
-    }
+    //if (ctx->max_width == 0) {
+    //    return NULL;
+    //}
 
     ctx->max_height = ngx_http_image_filter_get_value(r, conf->hcv,
                                                       conf->height);
-    if (ctx->max_height == 0) {
-        return NULL;
-    }
+    //if (ctx->max_height == 0) {
+    //    return NULL;
+    //}
 
     if (rc == NGX_OK
         && ctx->width <= ctx->max_width
@@ -1192,13 +1192,14 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
         ctx->pic.custom_ptr = &writer;
         dx = ctx->width;
         dy = ctx->height;
-        if ((ngx_uint_t) dx > ctx->max_width) {
+        //for sometimes we don't know jpg size just turn into webp
+        if (ctx->max_width != 0 && (ngx_uint_t) dx > ctx->max_width) {
             dy = dy * ctx->max_width / dx;
             dy = dy ? dy : 1;
             dx = ctx->max_width;
         }
 
-        if ((ngx_uint_t) dy > ctx->max_height) {
+        if (ctx->max_width != 0 && (ngx_uint_t) dy > ctx->max_height) {
             dx = dx * ctx->max_height / dy;
             dx = dx ? dx : 1;
             dy = ctx->max_height;
@@ -1287,13 +1288,13 @@ transparent:
 
     if (conf->filter == NGX_HTTP_IMAGE_RESIZE) {
 
-        if ((ngx_uint_t) dx > ctx->max_width) {
+        if (ctx->max_width != 0 && (ngx_uint_t) dx > ctx->max_width) {
             dy = dy * ctx->max_width / dx;
             dy = dy ? dy : 1;
             dx = ctx->max_width;
         }
 
-        if ((ngx_uint_t) dy > ctx->max_height) {
+        if (ctx->max_width != 0 && (ngx_uint_t) dy > ctx->max_height) {
             dx = dx * ctx->max_height / dy;
             dx = dx ? dx : 1;
             dy = ctx->max_height;
@@ -1309,21 +1310,26 @@ transparent:
 
         resize = 0;
 
-        if ((double) dx / dy < (double) ctx->max_width / ctx->max_height) {
-            if ((ngx_uint_t) dx > ctx->max_width) {
-                dy = dy * ctx->max_width / dx;
-                dy = dy ? dy : 1;
-                dx = ctx->max_width;
-                resize = 1;
-            }
+        while(1) {
+            if(ctx->max_height == 0|| ctx->max_width == 0)
+                break;
+            if ((double) dx / dy < (double) ctx->max_width / ctx->max_height) {
+                if ((ngx_uint_t) dx > ctx->max_width) {
+                    dy = dy * ctx->max_width / dx;
+                    dy = dy ? dy : 1;
+                    dx = ctx->max_width;
+                    resize = 1;
+                }
 
-        } else {
-            if ((ngx_uint_t) dy > ctx->max_height) {
-                dx = dx * ctx->max_height / dy;
-                dx = dx ? dx : 1;
-                dy = ctx->max_height;
-                resize = 1;
+            } else {
+                if ((ngx_uint_t) dy > ctx->max_height) {
+                    dx = dx * ctx->max_height / dy;
+                    dx = dx ? dx : 1;
+                    dy = ctx->max_height;
+                    resize = 1;
+                }
             }
+            break;
         }
     }
 
