@@ -1213,10 +1213,10 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
                 dx = dx ? dx : 1;
                 dy = ctx->max_height;
             }
-        }
-        if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
-            return NULL;
+            if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
+                return NULL;
+            }
         }
         if (!WebPEncode(&config, &ctx->pic)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot encode picture as WebP");
