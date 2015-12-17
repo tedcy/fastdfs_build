@@ -659,6 +659,7 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     u_char      *p, *last;
     size_t       len, app;
     ngx_uint_t   width, height;
+    ngx_http_image_filter_conf_t  *conf;
 
     p = ctx->image;
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);

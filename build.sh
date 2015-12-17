@@ -299,8 +299,9 @@ if [ "$nginx" == "true" ] ;then
 	#check_exist_and_mkd /home/nginx
 	useradd nginx -s /sbin/nologin -d /home/nginx
 	#yum -y groupinstall "Development tools" "Server Platform Libraries" 
-	yum remove libjpeg-turbo-devel-1.2.1-3.el6_5.x86_64
-	#yum -y install gd gd-devel pcre-devel
+	yum -y remove libjpeg-turbo-devel-1.2.1-3.el6_5.x86_64
+	#yum -y install gd gd-devel
+    yum -y install pcre-devel
 
     	cd $lib_jpeg_src_path
 	./configure
