@@ -1835,6 +1835,9 @@ ngx_http_image_filter(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     } else if (ngx_strcmp(value[i].data, "crop") == 0) {
         imcf->filter = NGX_HTTP_IMAGE_CROP;
 
+    } else if (ngx_strcmp(value[i].data, "format_to_webp") == 0) {
+        imcf->filter = NGX_HTTP_IMAGE_RESIZE;
+        /*do nothing*/
     } else {
         goto failed;
     }
