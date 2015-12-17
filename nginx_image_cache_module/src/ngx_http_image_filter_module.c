@@ -54,6 +54,7 @@ typedef struct {
     ngx_flag_t                   save_cache;
     ngx_flag_t                   lookup_cache;
     ngx_flag_t                   save_as_webp;
+    ngx_flag_t                   no_resize;
     
     ngx_http_complex_value_t    *wcv;
     ngx_http_complex_value_t    *hcv;
@@ -173,6 +174,13 @@ static ngx_command_t  ngx_http_image_filter_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_image_filter_conf_t, save_as_webp),
+      NULL },
+
+    { ngx_string("image_filter_no_resize"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_image_filter_conf_t, no_resize),
       NULL },
 
     { ngx_string("image_filter_buffer"),
@@ -1053,15 +1061,15 @@ ngx_http_image_process(ngx_http_request_t *r)
     }
 
     ctx->max_width = ngx_http_image_filter_get_value(r, conf->wcv, conf->width);
-    //if (ctx->max_width == 0) {
-    //    return NULL;
-    //}
+    if (ctx->max_width == 0) {
+        return NULL;
+    }
 
     ctx->max_height = ngx_http_image_filter_get_value(r, conf->hcv,
                                                       conf->height);
-    //if (ctx->max_height == 0) {
-    //    return NULL;
-    //}
+    if (ctx->max_height == 0) {
+        return NULL;
+    }
 
     if (rc == NGX_OK
         && ctx->width <= ctx->max_width
@@ -1193,16 +1201,18 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
         dx = ctx->width;
         dy = ctx->height;
         //for sometimes we don't know jpg size just turn into webp
-        if (ctx->max_width != 0 && (ngx_uint_t) dx > ctx->max_width) {
-            dy = dy * ctx->max_width / dx;
-            dy = dy ? dy : 1;
-            dx = ctx->max_width;
-        }
+        if(!conf->no_resize) {
+            if ((ngx_uint_t) dx > ctx->max_width) {
+                dy = dy * ctx->max_width / dx;
+                dy = dy ? dy : 1;
+                dx = ctx->max_width;
+            }
 
-        if (ctx->max_width != 0 && (ngx_uint_t) dy > ctx->max_height) {
-            dx = dx * ctx->max_height / dy;
-            dx = dx ? dx : 1;
-            dy = ctx->max_height;
+            if ((ngx_uint_t) dy > ctx->max_height) {
+                dx = dx * ctx->max_height / dy;
+                dx = dx ? dx : 1;
+                dy = ctx->max_height;
+            }
         }
         if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
@@ -1288,13 +1298,13 @@ transparent:
 
     if (conf->filter == NGX_HTTP_IMAGE_RESIZE) {
 
-        if (ctx->max_width != 0 && (ngx_uint_t) dx > ctx->max_width) {
+        if ((ngx_uint_t) dx > ctx->max_width) {
             dy = dy * ctx->max_width / dx;
             dy = dy ? dy : 1;
             dx = ctx->max_width;
         }
 
-        if (ctx->max_width != 0 && (ngx_uint_t) dy > ctx->max_height) {
+        if ((ngx_uint_t) dy > ctx->max_height) {
             dx = dx * ctx->max_height / dy;
             dx = dx ? dx : 1;
             dy = ctx->max_height;
@@ -1310,26 +1320,21 @@ transparent:
 
         resize = 0;
 
-        while(1) {
-            if(ctx->max_height == 0|| ctx->max_width == 0)
-                break;
-            if ((double) dx / dy < (double) ctx->max_width / ctx->max_height) {
-                if ((ngx_uint_t) dx > ctx->max_width) {
-                    dy = dy * ctx->max_width / dx;
-                    dy = dy ? dy : 1;
-                    dx = ctx->max_width;
-                    resize = 1;
-                }
-
-            } else {
-                if ((ngx_uint_t) dy > ctx->max_height) {
-                    dx = dx * ctx->max_height / dy;
-                    dx = dx ? dx : 1;
-                    dy = ctx->max_height;
-                    resize = 1;
-                }
+        if ((double) dx / dy < (double) ctx->max_width / ctx->max_height) {
+            if ((ngx_uint_t) dx > ctx->max_width) {
+                dy = dy * ctx->max_width / dx;
+                dy = dy ? dy : 1;
+                dx = ctx->max_width;
+                resize = 1;
             }
-            break;
+
+        } else {
+            if ((ngx_uint_t) dy > ctx->max_height) {
+                dx = dx * ctx->max_height / dy;
+                dx = dx ? dx : 1;
+                dy = ctx->max_height;
+                resize = 1;
+            }
         }
     }
 
@@ -1695,6 +1700,7 @@ ngx_http_image_filter_create_conf(ngx_conf_t *cf)
     conf->save_cache = NGX_CONF_UNSET;
     conf->lookup_cache = NGX_CONF_UNSET;
     conf->save_as_webp = NGX_CONF_UNSET;
+    conf->no_resize = NGX_CONF_UNSET;
     conf->buffer_size = NGX_CONF_UNSET_SIZE;
 
     return conf;
@@ -1745,6 +1751,7 @@ ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->save_cache, prev->save_cache, 1);
     ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 1);
     ngx_conf_merge_value(conf->save_as_webp, prev->save_as_webp, 1);
+    ngx_conf_merge_value(conf->no_resize, prev->no_resize, 1);
     
     ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
                               1 * 1024 * 1024);
@@ -1835,9 +1842,6 @@ ngx_http_image_filter(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     } else if (ngx_strcmp(value[i].data, "crop") == 0) {
         imcf->filter = NGX_HTTP_IMAGE_CROP;
 
-    } else if (ngx_strcmp(value[i].data, "format_to_webp") == 0) {
-        imcf->filter = NGX_HTTP_IMAGE_RESIZE;
-        /*do nothing*/
     } else {
         goto failed;
     }
