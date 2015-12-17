@@ -331,9 +331,12 @@ if [ "$nginx" == "true" ] ;then
 
 	cd $nginx_src_path
 	cp ../nginx_image_cache_module/src/ngx_http_image_filter_module.c src/http/modules/ngx_http_image_filter_module.c
+	cp ../nginx_image_cache_module/src/jpegdec.* src/http/modules/
+	cp ../nginx_image_cache_module/src/metadata.* src/http/modules/
 	cp ../ngx_http_fastdfs_module.c ../fastdfs-nginx-module/src/ngx_http_fastdfs_module.c
 	./configure \
         --with-ld-opt='-lwebp' \
+        --with-cc-opt='-DWEBP_HAVE_JPEG' \
 		--prefix=/data/nginx \
 		--error-log-path=/data/log/nginx/error.log \
 		--http-log-path=/data/log/nginx/access.log \
