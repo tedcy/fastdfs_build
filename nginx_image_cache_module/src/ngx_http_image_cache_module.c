@@ -75,7 +75,7 @@ ngx_http_lookup_and_send_cache_file(ngx_http_request_t *r, ngx_chain_t *out)
     uri_file_name = buf + 12;
 
     strncat((char*)file_name,(char *)uri_file_name,128);
-	
+    
     if(access((char *)file_name,F_OK) == 0) {
 
         b = ngx_palloc(r->pool, sizeof(ngx_buf_t));

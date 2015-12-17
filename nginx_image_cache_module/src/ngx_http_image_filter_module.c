@@ -151,14 +151,14 @@ static ngx_command_t  ngx_http_image_filter_commands[] = {
       offsetof(ngx_http_image_filter_conf_t, transparency),
       NULL },
 
-	{ ngx_string("image_filter_save_cache"),
+    { ngx_string("image_filter_save_cache"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_image_filter_conf_t, save_cache),
       NULL },
 
-	{ ngx_string("image_filter_lookup_cache"),
+    { ngx_string("image_filter_lookup_cache"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
@@ -416,13 +416,13 @@ ngx_file_aio_event_handler(ngx_event_t *ev)
 }
 
 struct image_cache_s {
-	u_char file_name[128];
-	int name_len;
-	ngx_file_t file;
-	u_char *buf;
-	ngx_log_t log;
-	ngx_open_file_t log_file;
-	ngx_event_aio_t aio;
+    u_char file_name[128];
+    int name_len;
+    ngx_file_t file;
+    u_char *buf;
+    ngx_log_t log;
+    ngx_open_file_t log_file;
+    ngx_event_aio_t aio;
 };
 
 typedef struct image_cache_s image_cache_t;
@@ -430,158 +430,158 @@ typedef struct image_cache_s image_cache_t;
 static void
 ngx_http_save_cache_file_handler(ngx_event_t *ev)
 {
-	image_cache_t *im;
-	u_char new_name[128];
-	im = ((ngx_event_aio_t *)ev->data)->data;
-	
-	if(ngx_close_file(im->file.fd) == NGX_FILE_ERROR){
-		ngx_log_error(NGX_LOG_ALERT,ev->log,ngx_errno,ngx_close_file_n " \"%s\" failed",im->file_name);
-	}
-	ngx_memzero(new_name,128);
-	ngx_memcpy(new_name,im->file_name,im->name_len);
-	if(ngx_rename_file(im->file_name,new_name) == NGX_FILE_ERROR){
-		ngx_log_error(NGX_LOG_ERR, ev->log, ngx_errno, "\"%s\"",im->file_name);
-	}
-	
-	//ngx_log_error(NGX_LOG_ERR, ev->log, 0, "\"%s\",\"%s\"",im->file_name,new_name);
-	free(im->buf);
+    image_cache_t *im;
+    u_char new_name[128];
+    im = ((ngx_event_aio_t *)ev->data)->data;
+    
+    if(ngx_close_file(im->file.fd) == NGX_FILE_ERROR){
+        ngx_log_error(NGX_LOG_ALERT,ev->log,ngx_errno,ngx_close_file_n " \"%s\" failed",im->file_name);
+    }
+    ngx_memzero(new_name,128);
+    ngx_memcpy(new_name,im->file_name,im->name_len);
+    if(ngx_rename_file(im->file_name,new_name) == NGX_FILE_ERROR){
+        ngx_log_error(NGX_LOG_ERR, ev->log, ngx_errno, "\"%s\"",im->file_name);
+    }
+    
+    //ngx_log_error(NGX_LOG_ERR, ev->log, 0, "\"%s\",\"%s\"",im->file_name,new_name);
+    free(im->buf);
     free(im);
 }
 
 static ngx_int_t
 ngx_http_save_cache_file(ngx_http_request_t *r, ngx_chain_t *in,ngx_chain_t *out)
 {
-	u_char *uri_file_name;
-	size_t file_len;
-	int rand_stamp;
-	image_cache_t *im = NULL;
-	ngx_int_t result;
+    u_char *uri_file_name;
+    size_t file_len;
+    int rand_stamp;
+    image_cache_t *im = NULL;
+    ngx_int_t result;
 
-	im = calloc(1,sizeof(image_cache_t));
-	if(im == NULL){
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"%d\" :can't malloc space",__LINE__);
-		return NGX_ERROR;
-	}
+    im = calloc(1,sizeof(image_cache_t));
+    if(im == NULL){
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"%d\" :can't malloc space",__LINE__);
+        return NGX_ERROR;
+    }
 
-	/*uri_start plus 12 than point to file_name*/
-	im->name_len = r->uri_end - r->uri_start - 12;
-	uri_file_name = r->uri_start + 12;
+    /*uri_start plus 12 than point to file_name*/
+    im->name_len = r->uri_end - r->uri_start - 12;
+    uri_file_name = r->uri_start + 12;
 
-	/*doesn't exist temp file*/
-	do{
-		rand_stamp = rand()%1000000;
-		snprintf((char *)im->file_name,128,"/data/imagecache/%.*s-%d",im->name_len,uri_file_name,rand_stamp);
-	}while(access((char *)im->file_name,F_OK) == 0);
-	/*strlen("/data/imagecache/") = 17*/
-	//ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"%s\"",im->file_name);
-	im->name_len += 17;
+    /*doesn't exist temp file*/
+    do{
+        rand_stamp = rand()%1000000;
+        snprintf((char *)im->file_name,128,"/data/imagecache/%.*s-%d",im->name_len,uri_file_name,rand_stamp);
+    }while(access((char *)im->file_name,F_OK) == 0);
+    /*strlen("/data/imagecache/") = 17*/
+    //ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "\"%s\"",im->file_name);
+    im->name_len += 17;
 
-	im->file.fd = ngx_open_file(im->file_name, NGX_FILE_WRONLY|NGX_FILE_NONBLOCK, NGX_FILE_CREATE_OR_OPEN,NGX_FILE_DEFAULT_ACCESS);
+    im->file.fd = ngx_open_file(im->file_name, NGX_FILE_WRONLY|NGX_FILE_NONBLOCK, NGX_FILE_CREATE_OR_OPEN,NGX_FILE_DEFAULT_ACCESS);
 
-	if(im->file.fd <= 0){
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, ngx_errno, "can't open file \"%s\"",im->file_name);
-		free(im);
-		return NGX_ERROR;
-	}
-	file_len = out->buf->last - out->buf->pos;
-	im->buf = malloc(file_len);
-	if(im->buf == NULL){
-		free(im);
-		ngx_log_error(NGX_LOG_ERR, r->connection->log, ngx_errno, "\"%d\" :can't malloc space",__LINE__);
-		return NGX_ERROR;
-	}
-	ngx_memcpy(im->buf,out->buf->pos,file_len);
+    if(im->file.fd <= 0){
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, ngx_errno, "can't open file \"%s\"",im->file_name);
+        free(im);
+        return NGX_ERROR;
+    }
+    file_len = out->buf->last - out->buf->pos;
+    im->buf = malloc(file_len);
+    if(im->buf == NULL){
+        free(im);
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, ngx_errno, "\"%d\" :can't malloc space",__LINE__);
+        return NGX_ERROR;
+    }
+    ngx_memcpy(im->buf,out->buf->pos,file_len);
 
     im->file.aio = &im->aio;
 
-	im->log.file = &im->log_file;
-	im->log.log_level = NGX_LOG_DEBUG;
-	im->log_file.fd = r->connection->log->file->fd;
+    im->log.file = &im->log_file;
+    im->log.log_level = NGX_LOG_DEBUG;
+    im->log_file.fd = r->connection->log->file->fd;
 
     im->file.aio->file = &im->file;
     im->file.aio->fd = im->file.fd;
-	im->file.aio->event.data = &im->aio;
+    im->file.aio->event.data = &im->aio;
     im->file.aio->event.ready = 1;
-	im->file.aio->data = im;
-	im->file.log = &im->log;
+    im->file.aio->data = im;
+    im->file.log = &im->log;
     im->file.aio->event.log = im->file.log;
 #if (NGX_HAVE_AIO_SENDFILE)
     im->file.aio->last_offset = -1;
 #endif
-	im->file.aio->handler = ngx_http_save_cache_file_handler;
-	if((result = ngx_file_aio_write(&im->file,im->buf,file_len,0,r->pool)) != NGX_AGAIN){
-		free(im->buf);
-		free(im);
-		return result;
-	}
-	return NGX_OK;
+    im->file.aio->handler = ngx_http_save_cache_file_handler;
+    if((result = ngx_file_aio_write(&im->file,im->buf,file_len,0,r->pool)) != NGX_AGAIN){
+        free(im->buf);
+        free(im);
+        return result;
+    }
+    return NGX_OK;
 }
 
 static ngx_int_t
 ngx_image_cache_mkdir(const char * path,ngx_log_t *log)
 {
-	char path_buf[128];
-	int first_dir,second_dir;
-	char first_dir_buf[8],second_dir_buf[8];
-	mode_t old_mask;
+    char path_buf[128];
+    int first_dir,second_dir;
+    char first_dir_buf[8],second_dir_buf[8];
+    mode_t old_mask;
 
-	old_mask = umask(0);
-	snprintf(path_buf,128,"%s/%s",path,"mkdir_done");
-	if(access(path,F_OK) == 0){
-		if(access(path_buf,F_OK) == 0)
-			return NGX_OK;
-	}else{
-		ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "cache path :\"%s\" doesn't exist",path);
-		return NGX_ERROR;
-	}
-	for(first_dir = 0;first_dir != 256;++first_dir){
-		snprintf(first_dir_buf,8,"%02X",first_dir);
-		snprintf(path_buf,128,"%s/%s",path,first_dir_buf);
-		if (ngx_create_dir(path_buf, S_IRWXU|S_IRWXG|S_IRWXO) == NGX_FILE_ERROR) {
-			ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "create \"%s\" failed",path_buf);
-		}
-		for(second_dir = 0;second_dir != 256;++second_dir){
-			snprintf(second_dir_buf,8,"%02X",second_dir);
-			snprintf(path_buf,128,"%s/%s/%s",path,first_dir_buf,second_dir_buf);
-			if (ngx_create_dir(path_buf, S_IRWXU|S_IRWXG|S_IRWXO|S_IWOTH) == NGX_FILE_ERROR) {
-				ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "create \"%s\" failed",path_buf);
-			}
-		}
-	}
-	snprintf(path_buf,128,"%s/%s",path,"mkdir_done");
-	if (ngx_create_dir(path_buf, S_IRWXU|S_IRWXG|S_IRWXO) == NGX_FILE_ERROR) {
-		ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "create \"%s\" failed",path_buf);
-	}
-	umask(old_mask);
+    old_mask = umask(0);
+    snprintf(path_buf,128,"%s/%s",path,"mkdir_done");
+    if(access(path,F_OK) == 0){
+        if(access(path_buf,F_OK) == 0)
+            return NGX_OK;
+    }else{
+        ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "cache path :\"%s\" doesn't exist",path);
+        return NGX_ERROR;
+    }
+    for(first_dir = 0;first_dir != 256;++first_dir){
+        snprintf(first_dir_buf,8,"%02X",first_dir);
+        snprintf(path_buf,128,"%s/%s",path,first_dir_buf);
+        if (ngx_create_dir(path_buf, S_IRWXU|S_IRWXG|S_IRWXO) == NGX_FILE_ERROR) {
+            ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "create \"%s\" failed",path_buf);
+        }
+        for(second_dir = 0;second_dir != 256;++second_dir){
+            snprintf(second_dir_buf,8,"%02X",second_dir);
+            snprintf(path_buf,128,"%s/%s/%s",path,first_dir_buf,second_dir_buf);
+            if (ngx_create_dir(path_buf, S_IRWXU|S_IRWXG|S_IRWXO|S_IWOTH) == NGX_FILE_ERROR) {
+                ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "create \"%s\" failed",path_buf);
+            }
+        }
+    }
+    snprintf(path_buf,128,"%s/%s",path,"mkdir_done");
+    if (ngx_create_dir(path_buf, S_IRWXU|S_IRWXG|S_IRWXO) == NGX_FILE_ERROR) {
+        ngx_log_error(NGX_LOG_ERR, log, ngx_errno, "create \"%s\" failed",path_buf);
+    }
+    umask(old_mask);
 
-	return NGX_OK;
+    return NGX_OK;
 }
 
 static ngx_int_t
 ngx_http_lookup_cache_file(ngx_http_request_t *r)
 {
-	u_char buf[128];
+    u_char buf[128];
     u_char file_name[128] = "/data/imagecache/";
-	size_t name_len;
-	u_char *uri_file_name;
-	
+    size_t name_len;
+    u_char *uri_file_name;
+    
     memset(buf,0,128);
-	name_len = r->uri_end - r->uri_start;
+    name_len = r->uri_end - r->uri_start;
     memcpy(buf,r->uri_start,name_len);
-	uri_file_name = buf + 12;
+    uri_file_name = buf + 12;
 
-	strncat((char*)file_name,(char *)uri_file_name,128);
+    strncat((char*)file_name,(char *)uri_file_name,128);
 
-	struct stat file;
-	if(stat((char *)file_name,&file) != -1){
-		//ngx_log_error(NGX_LOG_ERR,r->connection->log,0,"create \"%d\"-\"%d\"",file.st_mtime,ngx_cached_time->sec);
-		if(file.st_mtime < ngx_cached_time->sec - 60)
-			return NGX_OK;
-	}
+    struct stat file;
+    if(stat((char *)file_name,&file) != -1){
+        //ngx_log_error(NGX_LOG_ERR,r->connection->log,0,"create \"%d\"-\"%d\"",file.st_mtime,ngx_cached_time->sec);
+        if(file.st_mtime < ngx_cached_time->sec - 60)
+            return NGX_OK;
+    }
     //if(access((char *)file_name,F_OK) == 0) {
-	//	return NGX_OK;
-	//}
-	return NGX_HTTP_NOT_FOUND;
+    //    return NGX_OK;
+    //}
+    return NGX_HTTP_NOT_FOUND;
 }
 
 int ExUtilLoadWebP(const uint8_t* data, size_t data_size,
@@ -798,8 +798,8 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 }
             }
 
-	    if(in->buf->last == in->buf->pos)
-		return NGX_OK;
+        if(in->buf->last == in->buf->pos)
+        return NGX_OK;
             return ngx_http_filter_finalize_request(r,
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
@@ -814,13 +814,13 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
-		if(conf->lookup_cache){
-			if(ngx_http_lookup_cache_file(r) == NGX_OK){
-				ctx->phase = NGX_HTTP_IMAGE_PASS;
+        if(conf->lookup_cache){
+            if(ngx_http_lookup_cache_file(r) == NGX_OK){
+                ctx->phase = NGX_HTTP_IMAGE_PASS;
 
-				return ngx_http_image_send(r, ctx, in);
-			}
-		}
+                return ngx_http_image_send(r, ctx, in);
+            }
+        }
         if (conf->filter == NGX_HTTP_IMAGE_TEST) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
 
@@ -865,9 +865,9 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         out.next = NULL;
         ctx->phase = NGX_HTTP_IMAGE_PASS;
 
-		if(conf->save_cache){
-			ngx_http_save_cache_file(r,in,&out);
-		}
+        if(conf->save_cache){
+            ngx_http_save_cache_file(r,in,&out);
+        }
         return ngx_http_image_send(r, ctx, &out);
 
     case NGX_HTTP_IMAGE_PASS:
@@ -1570,9 +1570,9 @@ ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type, gdImagePtr img,
 
     case NGX_HTTP_IMAGE_PNG:
         //out = gdImagePngPtr(img, size);
-		//png will be bigger than ori,so use jpg to show
-		jq = 90;
-		out = gdImageJpegPtr(img, size, jq);
+        //png will be bigger than ori,so use jpg to show
+        jq = 90;
+        out = gdImageJpegPtr(img, size, jq);
         failed = "gdImagePngPtr() failed";
         break;
 
@@ -1974,7 +1974,7 @@ ngx_http_image_filter_sharpen(ngx_conf_t *cf, ngx_command_t *cmd,
 static ngx_int_t
 ngx_http_image_filter_init(ngx_conf_t *cf)
 {
-	ngx_image_cache_mkdir("/data/imagecache",cf->log);	
+    ngx_image_cache_mkdir("/data/imagecache",cf->log);    
     //ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_filter_init");
     ngx_http_next_header_filter = ngx_http_top_header_filter;
     ngx_http_top_header_filter = ngx_http_image_header_filter;
