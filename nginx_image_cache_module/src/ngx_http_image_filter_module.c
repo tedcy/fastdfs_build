@@ -14,6 +14,8 @@
 
 #include <webp/encode.h>
 #include <webp/decode.h>
+#include "metadata.c"
+#include "jpegdec.c"
 
 #define NGX_HTTP_IMAGE_OFF       0
 #define NGX_HTTP_IMAGE_TEST      1
@@ -51,6 +53,7 @@ typedef struct {
     ngx_flag_t                   transparency;
     ngx_flag_t                   save_cache;
     ngx_flag_t                   lookup_cache;
+    ngx_flag_t                   save_as_webp;
     
     ngx_http_complex_value_t    *wcv;
     ngx_http_complex_value_t    *hcv;
@@ -163,6 +166,13 @@ static ngx_command_t  ngx_http_image_filter_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_image_filter_conf_t, lookup_cache),
+      NULL },
+
+    { ngx_string("image_filter_save_as_webp"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_image_filter_conf_t, save_as_webp),
       NULL },
 
     { ngx_string("image_filter_buffer"),
@@ -651,10 +661,20 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     ngx_uint_t   width, height;
 
     p = ctx->image;
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
     switch (ctx->type) {
 
     case NGX_HTTP_IMAGE_JPEG:
+
+        if(conf->save_as_webp){
+            WebPPictureInit(&ctx->pic);
+
+            ReadJPEG(p, ctx->length, &ctx->pic, NULL);
+            width = ctx->pic.width;
+            height = ctx->pic.height;
+            break;
+        }
 
         p += 2;
         last = ctx->image + ctx->length - 10;
@@ -1155,7 +1175,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
-    if(ctx->type == NGX_HTTP_IMAGE_WEBP) {
+    if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP) {
         WebPConfig config;
         WebPMemoryWriter writer;
 
@@ -1667,6 +1687,7 @@ ngx_http_image_filter_create_conf(ngx_conf_t *cf)
     conf->transparency = NGX_CONF_UNSET;
     conf->save_cache = NGX_CONF_UNSET;
     conf->lookup_cache = NGX_CONF_UNSET;
+    conf->save_as_webp = NGX_CONF_UNSET;
     conf->buffer_size = NGX_CONF_UNSET_SIZE;
 
     return conf;
@@ -1716,6 +1737,7 @@ ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->transparency, prev->transparency, 1);
     ngx_conf_merge_value(conf->save_cache, prev->save_cache, 1);
     ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 1);
+    ngx_conf_merge_value(conf->save_as_webp, prev->save_as_webp, 1);
     
     ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
                               1 * 1024 * 1024);

@@ -269,15 +269,23 @@ if [ "$nginx" == "true" ] ;then
 	readonly fdfs_nginx_conf="/etc/fdfs/mod_fastdfs.conf"
     readonly lib_webp_tar="libwebp-0.4.3.tar.gz"
     readonly lib_webp_src_path="libwebp-0.4.3"
+	readonly lib_jpeg_tar="jpegsrc.v9a.tar.gz"
+	readonly lib_jpeg_src_path="jpeg-9a"
+	readonly lib_gd_tar="libgd-2.1.1.tar.gz"
+	readonly lib_gd_src_path="libgd-2.1.1"
 
 	check_exist_f $nginx_tar
 	check_exist_f $fdfs_nginx_tar
+	check_exist_f $lib_jpeg_zip
+	check_exist_f $lib_gd_tar
 	check_exist_f $lib_webp_tar
 
 	tar xf $nginx_tar
 	tar xf $fdfs_nginx_tar
 	tar xf $fastdfs_tar
-    tar xf $lib_webp_tar
+	tar xf $lib_jpeg_tar
+	tar xf $lib_gd_tar
+    	tar xf $lib_webp_tar
 	cp FastDFS/conf/http.conf /etc/fdfs
 	cp FastDFS/conf/mime.types /etc/fdfs
 	rm -rf FastDFS
@@ -291,7 +299,24 @@ if [ "$nginx" == "true" ] ;then
 	#check_exist_and_mkd /home/nginx
 	useradd nginx -s /sbin/nologin -d /home/nginx
 	#yum -y groupinstall "Development tools" "Server Platform Libraries" 
-	yum -y install gd gd-devel pcre-devel
+	yum remove libjpeg-turbo-devel-1.2.1-3.el6_5.x86_64
+	#yum -y install gd gd-devel pcre-devel
+
+    	cd $lib_jpeg_src_path
+	./configure
+   	make
+    	make install
+	ldconfig
+	cd ..
+	rm -rf $lib_jpeg_src_path
+
+	cd $lib_gd_src_path
+	./configure
+        make
+        make install
+	ldconfig
+	cd ..
+	rm -rf $lib_gd_src_path
 
     cd $lib_webp_src_path
     ./configure
