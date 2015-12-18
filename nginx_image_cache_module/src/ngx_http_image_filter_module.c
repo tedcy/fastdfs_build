@@ -897,8 +897,6 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         //    WebPPictureFree(&ctx->pic);
         
         if (out.buf == NULL) {
-            if(ctx->phase == NGX_HTTP_IMAGE_PASS)
-                return ngx_http_image_send(r, ctx, in);
             return ngx_http_filter_finalize_request(r,
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
@@ -1207,11 +1205,11 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
         //        return NULL;
         //}
         
-        //for sometimes we don't know jpg size just turn into webp
         dx = ctx->width;
         dy = ctx->height;
         resize = 0;
 
+        //for sometimes we don't know jpg size just turn into webp
         if(conf->no_resize == 0) {
             if ((ngx_uint_t) dx > ctx->max_width) {
                 dy = dy * ctx->max_width / dx;
@@ -1246,9 +1244,10 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
                     return NULL;
             }
         }
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "resize %d",(int)resize);
         if (!WebPEncode(&config, &ctx->pic)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot encode picture as WebP");
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error code: %d (%d)",ctx->pic.error_code, ctx->pic.error_code);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error code: %d",ctx->pic.error_code);
             return NULL;
         } 
 
