@@ -1250,7 +1250,6 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
             return NULL;
         }
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "resize %d",(int)resize);
         if (!WebPEncode(&config, &ctx->pic)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot encode picture as WebP");
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error code: %d",ctx->pic.error_code);
