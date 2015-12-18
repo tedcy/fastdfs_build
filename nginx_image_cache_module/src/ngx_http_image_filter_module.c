@@ -883,13 +883,13 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
         out.buf = ngx_http_image_process(r);
-        if(out.buf == NULL && ctx->phase == NGX_HTTP_IMAGE_PASS)
-            return ngx_http_image_send(r, ctx, in);
 
         //if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP)
         //    WebPPictureFree(&ctx->pic);
         
         if (out.buf == NULL) {
+            if(ctx->phase == NGX_HTTP_IMAGE_PASS)
+                ;//return ngx_http_image_send(r, ctx, in);
             return ngx_http_filter_finalize_request(r,
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
