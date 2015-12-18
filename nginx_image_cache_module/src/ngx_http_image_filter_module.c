@@ -1208,14 +1208,15 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
                 dy = ctx->max_height;
                 resize = 1;
             }
-        }
-        //no need to resize, send in now
-        if(!resize) {
-            ctx->phase = NGX_HTTP_IMAGE_PASS;
+            //no need to do anything, send in now
+            if(resize == 0) {
+                ctx->phase = NGX_HTTP_IMAGE_PASS;
 
-            WebPPictureFree(&ctx->pic);
-            return NULL;
+                WebPPictureFree(&ctx->pic);
+                return NULL;
+            }
         }
+        
         WebPConfig config;
         WebPMemoryWriter writer;
 
@@ -1229,9 +1230,11 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         ctx->pic.writer = WebPMemoryWrite;
         ctx->pic.custom_ptr = &writer;
-        if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
-                return NULL;
+        if(resize == 1) {
+            if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
+                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
+                    return NULL;
+            }
         }
         if (!WebPEncode(&config, &ctx->pic)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot encode picture as WebP");
