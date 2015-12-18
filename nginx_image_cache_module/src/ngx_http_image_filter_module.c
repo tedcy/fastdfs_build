@@ -680,6 +680,9 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
             WebPPictureInit(&ctx->pic);
 
             ReadJPEG(p, ctx->length, &ctx->pic, NULL);
+            //free ctx->image, now resoure managed by libwebp
+            ngx_pfree(r->pool, p);
+
             width = ctx->pic.width;
             height = ctx->pic.height;
             break;
@@ -852,6 +855,12 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 return ngx_http_image_send(r, ctx, in);
             }
         }
+        //no need to do anything, send in now
+        if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
+            ctx->phase = NGX_HTTP_IMAGE_PASS;
+        
+            return NULL;
+        }
         if (conf->filter == NGX_HTTP_IMAGE_TEST) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
 
@@ -889,7 +898,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         
         if (out.buf == NULL) {
             if(ctx->phase == NGX_HTTP_IMAGE_PASS)
-                //return ngx_http_image_send(r, ctx, in);
+                return ngx_http_image_send(r, ctx, in);
             return ngx_http_filter_finalize_request(r,
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
@@ -1191,12 +1200,12 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP) {
         
         //no need to do anything, send in now
-        if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
-                ctx->phase = NGX_HTTP_IMAGE_PASS;
-
-                WebPPictureFree(&ctx->pic);
-                return NULL;
-        }
+        //if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
+        //        ctx->phase = NGX_HTTP_IMAGE_PASS;
+        //
+        //        WebPPictureFree(&ctx->pic);
+        //        return NULL;
+        //}
         
         //for sometimes we don't know jpg size just turn into webp
         dx = ctx->width;
