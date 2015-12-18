@@ -859,7 +859,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
         
-            return NULL;
+            return ngx_http_image_send(r, ctx, in);
         }
         if (conf->filter == NGX_HTTP_IMAGE_TEST) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
