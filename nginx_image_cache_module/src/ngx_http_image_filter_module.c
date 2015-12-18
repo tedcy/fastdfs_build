@@ -668,6 +668,7 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     size_t       len, app;
     ngx_uint_t   width, height;
     ngx_http_image_filter_conf_t  *conf;
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_size");
 
     p = ctx->image;
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
@@ -833,7 +834,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
             }
 
         if(in->buf->last == in->buf->pos)
-        return NGX_OK;
+            return NGX_OK;
             return ngx_http_filter_finalize_request(r,
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
@@ -1002,6 +1003,7 @@ ngx_http_image_read(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_http_image_filter_ctx_t  *ctx;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_read");
 
     if (ctx->image == NULL) {
         ctx->image = ngx_palloc(r->pool, ctx->length);
@@ -1047,6 +1049,7 @@ ngx_http_image_process(ngx_http_request_t *r)
     ngx_int_t                      rc;
     ngx_http_image_filter_ctx_t   *ctx;
     ngx_http_image_filter_conf_t  *conf;
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_process");
 
     r->connection->buffered &= ~NGX_HTTP_IMAGE_BUFFERED;
 
