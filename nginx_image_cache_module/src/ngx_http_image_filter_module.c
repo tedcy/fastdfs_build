@@ -1189,12 +1189,21 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
     if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP) {
-        resize = 0;
+        
+        //no need to do anything, send in now
+        if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
+                ctx->phase = NGX_HTTP_IMAGE_PASS;
+
+                WebPPictureFree(&ctx->pic);
+                return NULL;
+        }
+        
         //for sometimes we don't know jpg size just turn into webp
         dx = ctx->width;
         dy = ctx->height;
+        resize = 0;
 
-        if(!conf->no_resize) {
+        if(conf->no_resize == 0) {
             if ((ngx_uint_t) dx > ctx->max_width) {
                 dy = dy * ctx->max_width / dx;
                 dy = dy ? dy : 1;
@@ -1208,15 +1217,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
                 dy = ctx->max_height;
                 resize = 1;
             }
-            //no need to do anything, send in now
-            if(resize == 0) {
-                ctx->phase = NGX_HTTP_IMAGE_PASS;
-
-                WebPPictureFree(&ctx->pic);
-                return NULL;
-            }
         }
-        
         WebPConfig config;
         WebPMemoryWriter writer;
 
