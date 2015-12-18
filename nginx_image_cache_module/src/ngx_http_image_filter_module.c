@@ -766,6 +766,8 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
         WebPPictureInit(&ctx->pic);
 
         ReadWebP(p, ctx->length, &ctx->pic, 1);
+        //free ctx->image, now resoure managed by libwebp
+        ngx_pfree(r->pool, p);
         width = ctx->pic.width;
         height = ctx->pic.height;
 
@@ -881,9 +883,11 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
         out.buf = ngx_http_image_process(r);
+        if(out.buf == NULL && ctx->phase == NGX_HTTP_IMAGE_PASS)
+            return ngx_http_image_send(r, ctx, in);
 
-        if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP)
-            WebPPictureFree(&ctx->pic);
+        //if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP)
+        //    WebPPictureFree(&ctx->pic);
         
         if (out.buf == NULL) {
             return ngx_http_filter_finalize_request(r,
@@ -1185,6 +1189,33 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
     if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP) {
+        resize = 0;
+        //for sometimes we don't know jpg size just turn into webp
+        dx = ctx->width;
+        dy = ctx->height;
+
+        if(!conf->no_resize) {
+            if ((ngx_uint_t) dx > ctx->max_width) {
+                dy = dy * ctx->max_width / dx;
+                dy = dy ? dy : 1;
+                dx = ctx->max_width;
+                resize = 1;
+            }
+
+            if ((ngx_uint_t) dy > ctx->max_height) {
+                dx = dx * ctx->max_height / dy;
+                dx = dx ? dx : 1;
+                dy = ctx->max_height;
+                resize = 1;
+            }
+        }
+        //no need to resize, send in now
+        if(!resize) {
+            ctx->phase = NGX_HTTP_IMAGE_PASS;
+
+            WebPPictureFree(&ctx->pic);
+            return NULL;
+        }
         WebPConfig config;
         WebPMemoryWriter writer;
 
@@ -1198,25 +1229,9 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         ctx->pic.writer = WebPMemoryWrite;
         ctx->pic.custom_ptr = &writer;
-        dx = ctx->width;
-        dy = ctx->height;
-        //for sometimes we don't know jpg size just turn into webp
-        if(!conf->no_resize) {
-            if ((ngx_uint_t) dx > ctx->max_width) {
-                dy = dy * ctx->max_width / dx;
-                dy = dy ? dy : 1;
-                dx = ctx->max_width;
-            }
-
-            if ((ngx_uint_t) dy > ctx->max_height) {
-                dx = dx * ctx->max_height / dy;
-                dx = dx ? dx : 1;
-                dy = ctx->max_height;
-            }
-            if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
+        if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
                 return NULL;
-            }
         }
         if (!WebPEncode(&config, &ctx->pic)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot encode picture as WebP");
@@ -1248,6 +1263,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         ngx_http_image_length(r, b);
 
+        WebPPictureFree(&ctx->pic);
         return b;
     }
     src = ngx_http_image_source(r, ctx);
