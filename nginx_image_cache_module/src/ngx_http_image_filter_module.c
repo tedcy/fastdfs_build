@@ -839,6 +839,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 2");
 
         /* override content type */
 
@@ -856,17 +857,20 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 return ngx_http_image_send(r, ctx, in);
             }
         }
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 3");
         //no need to do anything, send in now
         if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
         
             return ngx_http_image_send(r, ctx, in);
         }
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 4");
         if (conf->filter == NGX_HTTP_IMAGE_TEST) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
 
             return ngx_http_image_send(r, ctx, in);
         }
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 5");
 
         ctx->phase = NGX_HTTP_IMAGE_READ;
 
