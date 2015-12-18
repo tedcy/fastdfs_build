@@ -1748,10 +1748,10 @@ ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     ngx_conf_merge_value(conf->transparency, prev->transparency, 1);
-    ngx_conf_merge_value(conf->save_cache, prev->save_cache, 1);
-    ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 1);
-    ngx_conf_merge_value(conf->save_as_webp, prev->save_as_webp, 1);
-    ngx_conf_merge_value(conf->no_resize, prev->no_resize, 1);
+    ngx_conf_merge_value(conf->save_cache, prev->save_cache, 0);
+    ngx_conf_merge_value(conf->lookup_cache, prev->lookup_cache, 0);
+    ngx_conf_merge_value(conf->save_as_webp, prev->save_as_webp, 0);
+    ngx_conf_merge_value(conf->no_resize, prev->no_resize, 0);
     
     ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
                               1 * 1024 * 1024);
