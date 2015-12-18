@@ -1246,11 +1246,9 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         ctx->pic.writer = WebPMemoryWrite;
         ctx->pic.custom_ptr = &writer;
-        if(resize == 1) {
-            if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
-                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
-                    return NULL;
-            }
+        if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
+            return NULL;
         }
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "resize %d",(int)resize);
         if (!WebPEncode(&config, &ctx->pic)) {
