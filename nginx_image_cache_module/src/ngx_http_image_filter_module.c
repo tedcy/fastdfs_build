@@ -821,6 +821,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
         if (ctx->type == NGX_HTTP_IMAGE_NONE) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 1");
 
             if (conf->filter == NGX_HTTP_IMAGE_SIZE) {
                 out.buf = ngx_http_image_json(r, NULL);
@@ -963,6 +964,7 @@ ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_HTTP_IMAGE_NONE;
     }
 
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_test");
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "image filter: \"%c%c\"", p[0], p[1]);
 
