@@ -889,7 +889,7 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         
         if (out.buf == NULL) {
             if(ctx->phase == NGX_HTTP_IMAGE_PASS)
-                ;//return ngx_http_image_send(r, ctx, in);
+                //return ngx_http_image_send(r, ctx, in);
             return ngx_http_filter_finalize_request(r,
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
