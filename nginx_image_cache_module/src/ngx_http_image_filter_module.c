@@ -1234,6 +1234,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
             }
             if((ngx_uint_t)dx != ctx->width || (ngx_uint_t)dy != ctx->height)
                 resize = 1;
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "resize %d %d %d %d",dx,ctx->width,dy,ctx->height);
         }
         WebPConfig config;
         WebPMemoryWriter writer;
