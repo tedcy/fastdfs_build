@@ -668,7 +668,6 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
     size_t       len, app;
     ngx_uint_t   width, height;
     ngx_http_image_filter_conf_t  *conf;
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_size");
 
     p = ctx->image;
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
@@ -821,7 +820,6 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
         if (ctx->type == NGX_HTTP_IMAGE_NONE) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 1");
 
             if (conf->filter == NGX_HTTP_IMAGE_SIZE) {
                 out.buf = ngx_http_image_json(r, NULL);
@@ -840,7 +838,6 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                                               &ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 2");
 
         /* override content type */
 
@@ -858,20 +855,17 @@ ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 return ngx_http_image_send(r, ctx, in);
             }
         }
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 3");
         //no need to do anything, send in now
         if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
         
             return ngx_http_image_send(r, ctx, in);
         }
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 4");
         if (conf->filter == NGX_HTTP_IMAGE_TEST) {
             ctx->phase = NGX_HTTP_IMAGE_PASS;
 
             return ngx_http_image_send(r, ctx, in);
         }
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_body_filter 5");
 
         ctx->phase = NGX_HTTP_IMAGE_READ;
 
@@ -963,9 +957,7 @@ ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in)
     if (in->buf->last - p < 16) {
         return NGX_HTTP_IMAGE_NONE;
     }
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_test %d",in->buf->last - p);
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_test");
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "image filter: \"%c%c\"", p[0], p[1]);
 
@@ -1010,7 +1002,6 @@ ngx_http_image_read(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_http_image_filter_ctx_t  *ctx;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_read");
 
     if (ctx->image == NULL) {
         ctx->image = ngx_palloc(r->pool, ctx->length);
@@ -1056,7 +1047,6 @@ ngx_http_image_process(ngx_http_request_t *r)
     ngx_int_t                      rc;
     ngx_http_image_filter_ctx_t   *ctx;
     ngx_http_image_filter_conf_t  *conf;
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_process");
 
     r->connection->buffered &= ~NGX_HTTP_IMAGE_BUFFERED;
 
@@ -1218,9 +1208,12 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
         
         dx = ctx->width;
         dy = ctx->height;
+        resize = 0;
 
         //for sometimes we don't know jpg size just turn into webp
         if(conf->no_resize == 0) {
+            if(dx <= ctx->max_width && dy <= ctx->max_height)
+                resize = 1;
             if ((ngx_uint_t) dx > ctx->max_width) {
                 dy = dy * ctx->max_width / dx;
                 dy = dy ? dy : 1;
@@ -1246,9 +1239,11 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         ctx->pic.writer = WebPMemoryWrite;
         ctx->pic.custom_ptr = &writer;
-        if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
-            return NULL;
+        if(resize == 1) {
+            if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
+                return NULL;
+            }
         }
         if (!WebPEncode(&config, &ctx->pic)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot encode picture as WebP");
