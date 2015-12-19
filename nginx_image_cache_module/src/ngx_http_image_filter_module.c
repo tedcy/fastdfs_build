@@ -1225,15 +1225,15 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
                 dy = dy * ctx->max_width / dx;
                 dy = dy ? dy : 1;
                 dx = ctx->max_width;
-                resize = 1;
             }
 
             if ((ngx_uint_t) dy > ctx->max_height) {
                 dx = dx * ctx->max_height / dy;
                 dx = dx ? dx : 1;
                 dy = ctx->max_height;
-                resize = 1;
             }
+            if(dx != ctx->width || dy != height)
+                resize = 1;
         }
         WebPConfig config;
         WebPMemoryWriter writer;
