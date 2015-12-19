@@ -579,7 +579,8 @@ static ngx_int_t
 ngx_http_lookup_cache_file(ngx_http_request_t *r)
 {
     u_char buf[128];
-    u_char file_name[128] = "/data/imagecache/";
+    //u_char file_name[128] = "/data/imagecache/";
+    u_char file_name[128];
     size_t name_len;
     u_char *uri_file_name;
     
@@ -588,7 +589,8 @@ ngx_http_lookup_cache_file(ngx_http_request_t *r)
     memcpy(buf,r->uri_start,name_len);
     uri_file_name = buf + 12;
 
-    strncat((char*)file_name,(char *)uri_file_name,128);
+    snprintf((char *)file_name, 128, "/data/imagecache/%s", (char *)uri_file_name);
+    //strncat((char*)file_name,(char *)uri_file_name,128);
 
     struct stat file;
     if(stat((char *)file_name,&file) != -1){

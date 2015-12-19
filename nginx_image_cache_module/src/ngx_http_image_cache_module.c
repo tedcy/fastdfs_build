@@ -63,7 +63,8 @@ static ngx_int_t
 ngx_http_lookup_and_send_cache_file(ngx_http_request_t *r, ngx_chain_t *out)
 {
     u_char buf[128];
-    u_char file_name[128] = "/data/imagecache/";
+    //u_char file_name[128] = "/data/imagecache/";
+    u_char file_name[128];
     ngx_buf_t *b;
     ngx_pool_cleanup_t *cln;
     size_t name_len;
@@ -74,7 +75,8 @@ ngx_http_lookup_and_send_cache_file(ngx_http_request_t *r, ngx_chain_t *out)
     memcpy(buf,r->uri_start,name_len);
     uri_file_name = buf + 12;
 
-    strncat((char*)file_name,(char *)uri_file_name,128);
+    snprintf((char *)file_name, 128, "/data/imagecache/%s", (char *)uri_file_name);
+    //strncat((char*)file_name,(char *)uri_file_name,128);
     
     if(access((char *)file_name,F_OK) == 0) {
 
