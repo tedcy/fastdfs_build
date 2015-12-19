@@ -961,9 +961,9 @@ ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in)
     p = in->buf->pos;
 
     if (in->buf->last - p < 16) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_test %d",in->buf->last - p);
         return NGX_HTTP_IMAGE_NONE;
     }
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_test %d",in->buf->last - p);
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_image_test");
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
