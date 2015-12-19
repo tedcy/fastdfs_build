@@ -1232,7 +1232,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
                 dx = dx ? dx : 1;
                 dy = ctx->max_height;
             }
-            if(dx != ctx->width || dy != ctx->height)
+            if((ngx_uint_t)dx != ctx->width || (ngx_uint_t)dy != ctx->height)
                 resize = 1;
         }
         WebPConfig config;
