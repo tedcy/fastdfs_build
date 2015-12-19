@@ -1212,7 +1212,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         //for sometimes we don't know jpg size just turn into webp
         if(conf->no_resize == 0) {
-            if(dx <= ctx->max_width && dy <= ctx->max_height)
+            if((ngx_uint_t)dx <= ctx->max_width && (ngx_uint_t)dy <= ctx->max_height)
                 resize = 1;
             if ((ngx_uint_t) dx > ctx->max_width) {
                 dy = dy * ctx->max_width / dx;
