@@ -314,15 +314,13 @@ if [ "$nginx" == "true" ] ;then
     cd ..
     rm -rf $lib_jpeg_src_path
 
-    cd $lib_png_src_path
-    ./configure
-    make
-    make install
-    ldconfig
-    cd ..
-    rm -rf $lib_png_src_path
-
-
+#    cd $lib_png_src_path
+#    ./configure
+#    make
+#    make install
+#    ldconfig
+#    cd ..
+#    rm -rf $lib_png_src_path
 
     cd $lib_gd_src_path
     ./configure
@@ -349,8 +347,8 @@ if [ "$nginx" == "true" ] ;then
     cp ../nginx_image_cache_module/src/metadata.* src/http/modules/
     cp ../ngx_http_fastdfs_module.c ../fastdfs-nginx-module/src/ngx_http_fastdfs_module.c
     ./configure \
-        --with-ld-opt='-lwebp -ljpeg' \
-        --with-cc-opt='-DWEBP_HAVE_JPEG' \
+        --with-ld-opt='-lwebp -ljpeg -lpng' \
+        --with-cc-opt='-DWEBP_HAVE_JPEG -DWEBP_HAVE_PNG' \
         --prefix=/data/nginx \
         --error-log-path=/data/log/nginx/error.log \
         --http-log-path=/data/log/nginx/access.log \
