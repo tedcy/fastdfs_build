@@ -10,12 +10,13 @@
 #include <ngx_http.h>
 #include <ngx_event.h>
 
-#include <gd.h>
-
 #include <webp/encode.h>
 #include <webp/decode.h>
-#include "metadata.c"
+#include "pngdec.c"
 #include "jpegdec.c"
+#include "metadata.c"
+
+#include <gd.h>
 
 #define NGX_HTTP_IMAGE_OFF       0
 #define NGX_HTTP_IMAGE_TEST      1
@@ -757,6 +758,17 @@ ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
     case NGX_HTTP_IMAGE_PNG:
 
+        if(conf->save_as_webp){
+            WebPPictureInit(&ctx->pic);
+
+            ReadPNG(p, ctx->length, &ctx->pic, 1, NULL);
+            //free ctx->image, now resoure managed by libwebp
+            ngx_pfree(r->pool, p);
+
+            width = ctx->pic.width;
+            height = ctx->pic.height;
+            break;
+        }
         if (ctx->length < 24) {
             return NGX_DECLINED;
         }
@@ -1198,7 +1210,8 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
-    if((conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_JPEG) || ctx->type == NGX_HTTP_IMAGE_WEBP) {
+    if((conf->save_as_webp && (ctx->type == NGX_HTTP_IMAGE_JPEG || ctx->type == NGX_HTTP_IMAGE_PNG)) 
+            || ctx->type == NGX_HTTP_IMAGE_WEBP) {
         
         //no need to do anything, send in now
         //if(conf->save_as_webp && ctx->type == NGX_HTTP_IMAGE_WEBP) {
@@ -1633,8 +1646,9 @@ ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type, gdImagePtr img,
     case NGX_HTTP_IMAGE_PNG:
         //out = gdImagePngPtr(img, size);
         //png will be bigger than ori,so use jpg to show
-        jq = 90;
-        out = gdImageJpegPtr(img, size, jq);
+        //jq = 90;
+        //out = gdImageJpegPtr(img, size, jq);
+        out = gdImagePngPtrEx(img, size, 1);
         failed = "gdImagePngPtr() failed";
         break;
 

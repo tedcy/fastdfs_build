@@ -304,7 +304,7 @@ if [ "$nginx" == "true" ] ;then
     #yum -y groupinstall "Development tools" "Server Platform Libraries" 
     yum -y remove libjpeg-turbo-devel-1.2.1-3.el6_5.x86_64
     #yum -y install gd gd-devel
-    yum -y install pcre-devel
+    yum -y install libpng pcre-devel
 
     cd $lib_jpeg_src_path
     ./configure
@@ -344,6 +344,7 @@ if [ "$nginx" == "true" ] ;then
     cd $nginx_src_path
     cp ../nginx_image_cache_module/src/ngx_http_image_filter_module.c src/http/modules/ngx_http_image_filter_module.c
     cp ../nginx_image_cache_module/src/jpegdec.* src/http/modules/
+    cp ../nginx_image_cache_module/src/pngdec.* src/http/modules/
     cp ../nginx_image_cache_module/src/metadata.* src/http/modules/
     cp ../ngx_http_fastdfs_module.c ../fastdfs-nginx-module/src/ngx_http_fastdfs_module.c
     ./configure \
