@@ -191,8 +191,8 @@ static int ExtractMetadataFromPNG(png_structp png,
 typedef struct  
 {
   unsigned char* data;
-  int size;
-  int offset;
+  unsigned int size;
+  unsigned int offset;
 }ImageSource;
 
 static void pngReadCallback(png_structp png_ptr, png_bytep data, png_size_t length)  
