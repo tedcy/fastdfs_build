@@ -1239,6 +1239,8 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         WebPConfigInit(&config);
         WebPMemoryWriterInit(&writer);
+        
+        config.quality = 80;
 
         if (!WebPValidateConfig(&config)) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Invalid configuration.");
