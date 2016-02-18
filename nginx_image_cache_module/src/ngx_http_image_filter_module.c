@@ -1095,7 +1095,8 @@ ngx_http_image_process(ngx_http_request_t *r)
         && !ctx->force)
     {
         if(conf->save_as_webp){
-            WebPPictureFree(&ctx->pic);
+            conf->no_resize = 1
+            return ngx_http_image_resize(r, ctx);
         }
         return ngx_http_image_asis(r, ctx);
     }
