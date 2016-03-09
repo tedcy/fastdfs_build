@@ -79,6 +79,7 @@ typedef struct {
     ngx_uint_t                   max_width;
     ngx_uint_t                   max_height;
     ngx_uint_t                   angle;
+    ngx_uint_t                   no_resize;
 
     ngx_uint_t                   phase;
     ngx_uint_t                   type;
@@ -1088,6 +1089,7 @@ ngx_http_image_process(ngx_http_request_t *r)
         return NULL;
     }
 
+    ctx->no_resize = 0;
     if (rc == NGX_OK
         && ctx->width <= ctx->max_width
         && ctx->height <= ctx->max_height
@@ -1095,7 +1097,7 @@ ngx_http_image_process(ngx_http_request_t *r)
         && !ctx->force)
     {
         if(conf->save_as_webp){
-            conf->no_resize = 1;
+            ctx->no_resize = 1;
             return ngx_http_image_resize(r, ctx);
         }
         return ngx_http_image_asis(r, ctx);
@@ -1222,7 +1224,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
         dy = ctx->height;
 
         //for sometimes we don't know jpg size just turn into webp
-        if(conf->no_resize == 0) {
+        if(conf->no_resize == 0 && ctx->no_resize == 0) {
             if ((ngx_uint_t) dx > ctx->max_width) {
                 dy = dy * ctx->max_width / dx;
                 dy = dy ? dy : 1;
@@ -1250,7 +1252,7 @@ ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 
         ctx->pic.writer = WebPMemoryWrite;
         ctx->pic.custom_ptr = &writer;
-        if(conf->no_resize == 0) {
+        if(conf->no_resize == 0 && ctx->no_resize == 0) {
             if (!WebPPictureRescale(&ctx->pic, dx, dy)) {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Error! Cannot resize picture");
                 return NULL;
